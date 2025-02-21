@@ -26,3 +26,4 @@ go.work.sum
 
 # project settings
 data
+.DS_Store
