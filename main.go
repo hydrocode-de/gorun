@@ -6,10 +6,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/docker/docker/client"
 	"github.com/hydrocode-de/gorun/api"
 	"github.com/hydrocode-de/gorun/config"
+	"github.com/hydrocode-de/gorun/internal/files"
 	"github.com/hydrocode-de/gorun/internal/toolImage"
 	"github.com/joho/godotenv"
 )
@@ -32,6 +34,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// create a ticker to cleanup uploads
+	ticker := time.NewTicker(time.Minute * 30)
+	go func() {
+		for range ticker.C {
+			fmt.Println("Running cleanup")
+			err := files.Cleanup(&config)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}()
 
 	// DEV section
 	// read in a argv for a docker image name

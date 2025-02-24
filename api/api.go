@@ -30,6 +30,7 @@ func CreateServer(c *config.APIConfig) (*http.ServeMux, error) {
 	mux.HandleFunc("POST /runs", HandleFuncWithConfig(HandleCreateRun, c))
 	mux.HandleFunc("GET /runs/{id}", RunMiddleware(HandleGetRunStatus, c))
 	mux.HandleFunc("POST /runs/{id}/start", RunMiddleware(HandleRunStart, c))
+	mux.HandleFunc("POST /files", HandleFuncWithConfig(HandleFileUpload, c))
 
 	return mux, nil
 }

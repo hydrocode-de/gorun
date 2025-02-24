@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 
 	"github.com/docker/docker/client"
 	"github.com/hydrocode-de/gorun/internal/cache"
@@ -16,10 +17,13 @@ import (
 
 type APIConfig struct {
 	Port          int
+	MaxUploadSize int64
 	dbPath        string
 	db            *db.Queries
 	docker        *client.Client
 	baseMountPath string
+	BaseTempDir   string
+	MaxTempAge    time.Duration
 	Cache         cache.Cache
 }
 
@@ -78,6 +82,18 @@ func (c *APIConfig) Load(docker *client.Client) error {
 	c.baseMountPath = os.Getenv("GORUN_MOUNT_PATH")
 	if c.baseMountPath == "" {
 		c.baseMountPath = path.Join(os.Getenv("HOME"), "gorun", "mounts")
+	}
+
+	// some defaults
+	if c.MaxUploadSize == 0 {
+		c.MaxUploadSize = 1024 * 1024 * 1024 * 2 // 2GB
+	}
+
+	if c.BaseTempDir == "" {
+		c.BaseTempDir = path.Join(os.TempDir(), "gorun")
+	}
+	if c.MaxTempAge == 0 {
+		c.MaxTempAge = 12 * time.Hour
 	}
 
 	return nil
