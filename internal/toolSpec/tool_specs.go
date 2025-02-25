@@ -20,29 +20,29 @@ func (s *SpecFile) GetTool(toolName string) (ToolSpec, error) {
 }
 
 type ToolSpec struct {
-	Title       string                   `yaml:"title"`
-	Description string                   `yaml:"description,omitempty"`
-	Parameters  map[string]ParameterSpec `yaml:"parameters,omitempty"`
-	Data        map[string]DataSpec      `yaml:"data,omitempty"`
+	Title       string                   `json:"title" yaml:"title"`
+	Description string                   `json:"description" yaml:"description"`
+	Parameters  map[string]ParameterSpec `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Data        map[string]DataSpec      `json:"data,omitempty" yaml:"data,omitempty"`
 }
 
 type ParameterSpec struct {
-	Name        string   `yaml:"name"`
-	Description string   `yaml:"description,omitempty"`
-	ToolType    string   `yaml:"type"`
-	IsArray     bool     `yaml:"array,omitempty" default:"false"`
-	Default     bool     `yaml:"default,omitempty" default:"false"`
-	Values      []string `yaml:"values,omitempty"`
-	Min         float64  `yaml:"min,omitempty"`
-	Max         float64  `yaml:"max,omitempty"`
+	Name        string   `json:"name" yaml:"name"`
+	Description string   `json:"description,omitempty" yaml:"description,omitempty"`
+	ToolType    string   `json:"type" yaml:"type"`
+	IsArray     bool     `json:"array,omitempty" yaml:"array,omitempty" default:"false"`
+	Default     bool     `json:"default,omitempty" yaml:"default,omitempty" default:"false"`
+	Values      []string `json:"values,omitempty" yaml:"values,omitempty"`
+	Min         float64  `json:"min,omitempty" yaml:"min,omitempty"`
+	Max         float64  `json:"max,omitempty" yaml:"max,omitempty"`
 }
 
 type DataSpec struct {
-	Path        string      `yaml:"path"`
-	Description string      `yaml:"description,omitempty"`
-	Example     string      `yaml:"example,omitempty"`
-	Extension   interface{} `yaml:"extension,omitempty"`
-	Extensions  []string
+	Path        string      `json:"path" yaml:"path"`
+	Description string      `json:"description,omitempty" yaml:"description,omitempty"`
+	Example     string      `json:"example,omitempty" yaml:"example,omitempty"`
+	Extension   interface{} `json:"-" yaml:"extension,omitempty"`
+	Extensions  []string    `json:"extension,omitempty"`
 }
 
 func (d *DataSpec) UnmarshalYAML(value *yaml.Node) error {
