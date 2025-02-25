@@ -46,6 +46,19 @@ func RunMiddleware(handler func(http.ResponseWriter, *http.Request, tool.Tool, *
 	}
 }
 
+func HandleToolSpec(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
+	toolName := r.PathValue("toolname")
+	if toolName == "" {
+		RespondWithError(w, http.StatusNotFound, "missing tool name")
+	}
+
+	spec, wasFound := c.Cache.GetToolSpec(toolName)
+	if !wasFound {
+		RespondWithError(w, http.StatusNotFound, "tool not found")
+	}
+	ResondWithJSON(w, http.StatusOK, spec)
+}
+
 func HandleCreateRun(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
 	var payload CreateRunPayload
 	err := json.NewDecoder(r.Body).Decode(&payload)

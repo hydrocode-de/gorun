@@ -5,14 +5,7 @@ import (
 	"net/http"
 
 	"github.com/hydrocode-de/gorun/config"
-	"github.com/hydrocode-de/gorun/internal/db"
 )
-
-func HandleFuncWithDB(handler func(http.ResponseWriter, *http.Request, *db.Queries), c *config.APIConfig) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		handler(w, r, c.GetDB())
-	}
-}
 
 func HandleFuncWithConfig(handler func(http.ResponseWriter, *http.Request, *config.APIConfig), c *config.APIConfig) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +24,7 @@ func CreateServer(c *config.APIConfig) (*http.ServeMux, error) {
 	mux.HandleFunc("GET /runs/{id}", RunMiddleware(HandleGetRunStatus, c))
 	mux.HandleFunc("POST /runs/{id}/start", RunMiddleware(HandleRunStart, c))
 	mux.HandleFunc("POST /files", HandleFuncWithConfig(HandleFileUpload, c))
+	mux.HandleFunc("GET /specs/{toolname}", HandleFuncWithConfig(HandleToolSpec, c))
 
 	return mux, nil
 }

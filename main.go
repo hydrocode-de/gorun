@@ -36,13 +36,24 @@ func main() {
 	}
 
 	// create a ticker to cleanup uploads
-	ticker := time.NewTicker(time.Minute * 30)
+	ticker := time.NewTicker(time.Minute * 5)
 	go func() {
 		for range ticker.C {
-			fmt.Println("Running cleanup")
+			log.Println("Running cleanup")
 			err := files.Cleanup(&config)
 			if err != nil {
 				log.Fatal(err)
+			}
+		}
+	}()
+
+	go toolImage.ReadAllTools(context.Background(), docker, &config.Cache)
+	go func() {
+		for range ticker.C {
+			log.Println("Checking for new images...")
+			_, err := toolImage.ReadAllTools(context.Background(), docker, &config.Cache)
+			if err != nil {
+				log.Fatalf("Errored while updating tool images: %s", err)
 			}
 		}
 	}()
@@ -55,7 +66,7 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Printf("GoRun server listening on port %d\n", config.Port)
+			log.Printf("GoRun server listening on port %d\n", config.Port)
 			log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), mux))
 		}
 
@@ -65,11 +76,11 @@ func main() {
 				log.Fatal(err)
 			}
 			for _, tool := range tools {
-				fmt.Println(tool)
+				log.Println(tool)
 			}
 		}
 
 	} else {
-		fmt.Println("No command line arguments provided")
+		log.Println("No command line arguments provided")
 	}
 }
