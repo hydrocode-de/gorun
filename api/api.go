@@ -20,11 +20,12 @@ func CreateServer(c *config.APIConfig) (*http.ServeMux, error) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
-	mux.HandleFunc("POST /runs", HandleFuncWithConfig(HandleCreateRun, c))
-	mux.HandleFunc("GET /runs/{id}", RunMiddleware(HandleGetRunStatus, c))
+	mux.HandleFunc("POST /runs", HandleFuncWithConfig(CreateRun, c))
+	mux.HandleFunc("GET /runs/{id}", RunMiddleware(GetRunStatus, c))
 	mux.HandleFunc("POST /runs/{id}/start", RunMiddleware(HandleRunStart, c))
 	mux.HandleFunc("POST /files", HandleFuncWithConfig(HandleFileUpload, c))
-	mux.HandleFunc("GET /specs/{toolname}", HandleFuncWithConfig(HandleToolSpec, c))
+	mux.HandleFunc("GET /specs", HandleFuncWithConfig(ListToolSpecs, c))
+	mux.HandleFunc("GET /specs/{toolname}", HandleFuncWithConfig(GetToolSpec, c))
 
 	return mux, nil
 }

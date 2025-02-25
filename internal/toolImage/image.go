@@ -25,7 +25,7 @@ func ReadAllTools(ctx context.Context, c *client.Client, cache *cache.Cache) ([]
 			continue
 		}
 		imgTag := img.RepoTags[0]
-		fmt.Printf("checking %s...\n", imgTag)
+		//log.Printf("checking %s...\n", imgTag)
 		image, ok := cache.GetImageSpec(imgTag)
 		if !ok {
 			spec, err := ReadToolSpec(ctx, c, imgTag)

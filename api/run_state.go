@@ -10,7 +10,13 @@ import (
 
 	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/tool"
+	"github.com/hydrocode-de/gorun/internal/toolSpec"
 )
+
+type ListToolSpecResponse struct {
+	Count int                 `json:"count"`
+	Tools []toolSpec.ToolSpec `json:"tools"`
+}
 
 type CreateRunPayload struct {
 	ToolName    string                 `json:"name"`
@@ -46,7 +52,7 @@ func RunMiddleware(handler func(http.ResponseWriter, *http.Request, tool.Tool, *
 	}
 }
 
-func HandleToolSpec(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
+func GetToolSpec(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
 	toolName := r.PathValue("toolname")
 	if toolName == "" {
 		RespondWithError(w, http.StatusNotFound, "missing tool name")
@@ -59,7 +65,16 @@ func HandleToolSpec(w http.ResponseWriter, r *http.Request, c *config.APIConfig)
 	ResondWithJSON(w, http.StatusOK, spec)
 }
 
-func HandleCreateRun(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
+func ListToolSpecs(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
+	specs := c.Cache.ListToolSpecs()
+
+	ResondWithJSON(w, http.StatusOK, ListToolSpecResponse{
+		Count: len(specs),
+		Tools: specs,
+	})
+}
+
+func CreateRun(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
 	var payload CreateRunPayload
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
@@ -82,7 +97,7 @@ func HandleCreateRun(w http.ResponseWriter, r *http.Request, c *config.APIConfig
 	ResondWithJSON(w, http.StatusCreated, runData)
 }
 
-func HandleGetRunStatus(w http.ResponseWriter, r *http.Request, run tool.Tool, c *config.APIConfig) {
+func GetRunStatus(w http.ResponseWriter, r *http.Request, run tool.Tool, c *config.APIConfig) {
 	ResondWithJSON(w, http.StatusOK, run)
 }
 

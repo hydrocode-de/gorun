@@ -16,6 +16,14 @@ func (c *Cache) SetToolSpec(key string, spec *toolSpec.ToolSpec) {
 	c.data[key] = *spec
 }
 
+func (c *Cache) ListToolSpecs() []toolSpec.ToolSpec {
+	specs := make([]toolSpec.ToolSpec, 0)
+	for _, spec := range c.data {
+		specs = append(specs, spec)
+	}
+	return specs
+}
+
 func (c *Cache) GetImageSpec(key string) (*toolSpec.SpecFile, bool) {
 	spec, ok := c.images[key]
 	return &spec, ok
