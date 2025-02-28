@@ -66,8 +66,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
+			server := api.EnableCORS(mux, "*")
 			log.Printf("GoRun server listening on port %d\n", config.Port)
-			log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), mux))
+			log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), server))
 		}
 
 		if os.Args[1] == "list" {
