@@ -25,7 +25,6 @@ func ReadAllTools(ctx context.Context, c *client.Client, cache *cache.Cache) ([]
 			continue
 		}
 		imgTag := img.RepoTags[0]
-		//log.Printf("checking %s...\n", imgTag)
 		image, ok := cache.GetImageSpec(imgTag)
 		if !ok {
 			spec, err := ReadToolSpec(ctx, c, imgTag)
@@ -34,13 +33,16 @@ func ReadAllTools(ctx context.Context, c *client.Client, cache *cache.Cache) ([]
 			} else {
 				cache.SetImageSpec(imgTag, spec)
 				for name, tool := range spec.Tools {
-					cache.SetToolSpec(name, &tool)
-					tools = append(tools, fmt.Sprintf("%s::%s", imgTag, name))
+					slug := fmt.Sprintf("%s::%s", imgTag, name)
+					tool.ID = slug
+					tool.Name = name
+					cache.SetToolSpec(slug, &tool)
+					tools = append(tools, slug)
 				}
 			}
 		} else {
 			for name := range image.Tools {
-				tools = append(tools, fmt.Sprintf("%s::%s", imgTag, name))
+				tools = append(tools, name)
 			}
 		}
 	}
@@ -81,6 +83,7 @@ func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache 
 			if !ok {
 				return toolSpec.ToolSpec{}, fmt.Errorf("the tool %s was not found in the image %s", toolName, imageName)
 			}
+			tool.ID = toolSlug
 			return tool, nil
 		}
 	}

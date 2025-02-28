@@ -20,6 +20,8 @@ func (s *SpecFile) GetTool(toolName string) (ToolSpec, error) {
 }
 
 type ToolSpec struct {
+	ID          string                   `json:"id" yaml:"-"`
+	Name        string                   `json:"name" yaml:"-"`
 	Title       string                   `json:"title" yaml:"title"`
 	Description string                   `json:"description" yaml:"description"`
 	Parameters  map[string]ParameterSpec `json:"parameters,omitempty" yaml:"parameters,omitempty"`
