@@ -20,6 +20,10 @@ func CreateServer(c *config.APIConfig) (*http.ServeMux, error) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
+
+	// add a FileServer to serve the manager
+	mux.Handle("/manager/", http.StripPrefix("/manager/", http.FileServer(http.Dir("manager/build"))))
+
 	mux.HandleFunc("POST /runs", HandleFuncWithConfig(CreateRun, c))
 	mux.HandleFunc("GET /runs/{id}", RunMiddleware(GetRunStatus, c))
 	mux.HandleFunc("POST /runs/{id}/start", RunMiddleware(HandleRunStart, c))
