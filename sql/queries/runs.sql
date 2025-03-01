@@ -25,7 +25,13 @@ RETURNING *;
 SELECT * FROM runs;
 
 -- name: GetIdleRuns :many
-SELECT * FROM runs WHERE is_pending = TRUE;
+SELECT * FROM runs WHERE status = 'pending';
 
 -- name: GetRunning :many
-SELECT * FROM runs WHERE is_running = TRUE;
+SELECT * FROM runs WHERE status = 'running';
+
+-- name: GetFinishedRuns :many
+SELECT * FROM runs WHERE status = 'finished';
+
+-- name: GetErroredRuns :many
+SELECT * FROM runs WHERE status = 'errored';
