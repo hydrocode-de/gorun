@@ -1,6 +1,7 @@
 package files
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -46,9 +47,11 @@ func walkDirCheckTimestamp(path string, d fs.DirEntry, err error, maxAge time.Ti
 	}
 
 	if shouldRemove {
+		fmt.Printf("Removing %v now....\n", path)
 		if err := os.RemoveAll(path); err != nil {
 			return err
 		}
+		return filepath.SkipDir
 	}
 
 	return nil

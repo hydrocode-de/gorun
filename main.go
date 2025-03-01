@@ -81,6 +81,13 @@ func main() {
 			}
 		}
 
+		if os.Args[1] == "cleanup" {
+			err = files.Cleanup(&config)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
 	} else {
 		log.Println("No command line arguments provided")
 	}
