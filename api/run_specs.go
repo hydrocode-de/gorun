@@ -1,12 +1,10 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/tool"
@@ -95,27 +93,4 @@ func CreateRun(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
 	}
 
 	ResondWithJSON(w, http.StatusCreated, runData)
-}
-
-func GetRunStatus(w http.ResponseWriter, r *http.Request, run tool.Tool, c *config.APIConfig) {
-	ResondWithJSON(w, http.StatusOK, run)
-}
-
-func HandleRunStart(w http.ResponseWriter, r *http.Request, run tool.Tool, c *config.APIConfig) {
-	opt := tool.RunToolOptions{
-		DB:   (*c).GetDB(),
-		Tool: run,
-		Env:  []string{},
-		// Cmd:  []string{},
-	}
-
-	go tool.RunTool(context.Background(), (*c).GetDockerClient(), opt)
-
-	// wait a few miliseconds to make sure the container is started
-	time.Sleep(time.Millisecond * 50)
-	started, err := (*c).GetDB().GetRun(r.Context(), run.ID)
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-	}
-	ResondWithJSON(w, http.StatusProcessing, started)
 }

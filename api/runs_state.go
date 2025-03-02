@@ -1,8 +1,12 @@
 package api
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/db"
@@ -51,4 +55,48 @@ func GetAllRuns(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
 		Status: filter,
 		Runs:   toolRuns,
 	})
+}
+
+func DeleteRun(w http.ResponseWriter, r *http.Request, tool tool.Tool, c *config.APIConfig) {
+	// the tool may have a saved mount point, so we delete it first
+	_, ok := tool.Mounts["/in"]
+	if ok {
+		parent := filepath.Dir(tool.Mounts["/in"])
+		err := os.RemoveAll(parent)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+		}
+	}
+
+	err := c.GetDB().DeleteRun(r.Context(), tool.ID)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+	}
+	ResondWithJSON(w, http.StatusOK, map[string]string{
+		"message": "Run deleted",
+	})
+
+}
+
+func GetRunStatus(w http.ResponseWriter, r *http.Request, run tool.Tool, c *config.APIConfig) {
+	ResondWithJSON(w, http.StatusOK, run)
+}
+
+func HandleRunStart(w http.ResponseWriter, r *http.Request, run tool.Tool, c *config.APIConfig) {
+	opt := tool.RunToolOptions{
+		DB:   (*c).GetDB(),
+		Tool: run,
+		Env:  []string{},
+		// Cmd:  []string{},
+	}
+
+	go tool.RunTool(context.Background(), (*c).GetDockerClient(), opt)
+
+	// wait a few miliseconds to make sure the container is started
+	time.Sleep(time.Millisecond * 100)
+	started, err := (*c).GetDB().GetRun(r.Context(), run.ID)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+	}
+	ResondWithJSON(w, http.StatusProcessing, started)
 }

@@ -27,6 +27,7 @@ func CreateServer(c *config.APIConfig) (*http.ServeMux, error) {
 	mux.HandleFunc("GET /runs", HandleFuncWithConfig(GetAllRuns, c))
 	mux.HandleFunc("POST /runs", HandleFuncWithConfig(CreateRun, c))
 	mux.HandleFunc("GET /runs/{id}", RunMiddleware(GetRunStatus, c))
+	mux.HandleFunc("DELETE /runs/{id}", RunMiddleware(DeleteRun, c))
 	mux.HandleFunc("POST /runs/{id}/start", RunMiddleware(HandleRunStart, c))
 	mux.HandleFunc("POST /files", HandleFuncWithConfig(HandleFileUpload, c))
 	mux.HandleFunc("GET /specs", HandleFuncWithConfig(ListToolSpecs, c))
