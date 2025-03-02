@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { config } from './state.svelte.js';
+    import { config } from '$lib/state.svelte';
     
     let apiStatus: boolean | null = null; 
     

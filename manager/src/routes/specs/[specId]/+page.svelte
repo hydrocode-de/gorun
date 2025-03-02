@@ -2,8 +2,9 @@
     import DataInput from "$lib/components/DataInput.svelte";
     import ParameterInput from "$lib/components/ParameterInput.svelte";
     import type { TempFile } from "$lib/types/TempFile";
-    import { config } from "../../state.svelte";
+    import { config } from "$lib/state.svelte";
     import type { PageProps } from "./$types";
+    import { goto } from "$app/navigation";
 
     let { data }: PageProps = $props();
     $inspect(data);
@@ -52,7 +53,10 @@
             body: JSON.stringify(payload)
         })
         .then(res => res.json())
-        .then(response => console.log(response))
+        .then(response => { 
+            console.log(response);
+            goto('/manager/runs');
+        })
     }
 </script>
 
@@ -97,7 +101,7 @@
 </div>
 {#if allValid}
 <button class="w-full px-3 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 transition-colors cursor-pointer" onclick={startRun}>
-    Run
+    Create
 </button>
 {/if}
 

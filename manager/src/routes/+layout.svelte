@@ -11,6 +11,7 @@
 			<div class="space-x-4">
 				<a href="/manager" class="hover:text-gray-300">Home</a>
 				<a href="/manager/specs" class="hover:text-gray-300">Tools</a>
+				<a href="/manager/runs" class="hover:text-gray-300">Runs</a>
 			</div>
 		</div>
 	</nav>

@@ -1,7 +1,7 @@
 <script lang="ts">
+    import { config } from "$lib/state.svelte";
     import type { TempFile } from "$lib/types/TempFile";
     import type { DataSpec } from "$lib/types/ToolSpec";
-    import { config } from "../../routes/state.svelte";
 
     interface $$Props {
         data: DataSpec;

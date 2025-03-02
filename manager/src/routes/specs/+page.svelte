@@ -1,8 +1,9 @@
 <script lang="ts">
-    import { config, tools } from "../state.svelte";
+    import {config } from "$lib/state.svelte";
+    import { tools } from "../state.svelte";
 
     $inspect(tools);
-    let isLoading = false;
+    let isLoading = $state(false);
 
     function refresh() {
         isLoading = true;
