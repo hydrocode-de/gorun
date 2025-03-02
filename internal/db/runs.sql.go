@@ -12,7 +12,7 @@ import (
 
 const createRun = `-- name: CreateRun :one
 INSERT INTO runs (name, title, description, docker_image, parameters, data, mounts, created_at)
-VALUES (?,?,?,?,?,?,?,date('now'))
+VALUES (?,?,?,?,?,?,?,datetime('now'))
 RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message
 `
 
@@ -56,8 +56,17 @@ func (q *Queries) CreateRun(ctx context.Context, arg CreateRunParams) (Run, erro
 	return i, err
 }
 
+const deleteRun = `-- name: DeleteRun :exec
+DELETE FROM runs WHERE id = ?
+`
+
+func (q *Queries) DeleteRun(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteRun, id)
+	return err
+}
+
 const finishRun = `-- name: FinishRun :one
-UPDATE runs SET status = 'finished', finished_at = date('now')
+UPDATE runs SET status = 'finished', finished_at = datetime('now')
 WHERE id = ?
 RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message
 `
@@ -321,7 +330,7 @@ func (q *Queries) GetRunning(ctx context.Context) ([]Run, error) {
 }
 
 const runErrored = `-- name: RunErrored :one
-UPDATE runs SET status = 'errored', error_message = ?, finished_at = date('now'), has_errored = TRUE
+UPDATE runs SET status = 'errored', error_message = ?, finished_at = datetime('now'), has_errored = TRUE
 WHERE id = ?
 RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message
 `
@@ -354,7 +363,7 @@ func (q *Queries) RunErrored(ctx context.Context, arg RunErroredParams) (Run, er
 }
 
 const startRun = `-- name: StartRun :one
-UPDATE runs SET status = 'running', started_at = date('now')
+UPDATE runs SET status = 'running', started_at = datetime('now')
 WHERE id = ?
 RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message
 `
