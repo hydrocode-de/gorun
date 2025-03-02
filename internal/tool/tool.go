@@ -13,14 +13,14 @@ type Tool struct {
 	Title       string                 `json:"title"`
 	Description string                 `json:"description"`
 	Image       string                 `json:"image"`
-	Parameters  map[string]interface{} `json:"parameters"`
-	Data        map[string]string      `json:"data"`
-	Mounts      map[string]string      `json:"mounts"`
+	Parameters  map[string]interface{} `json:"parameters,omitempty"`
+	Data        map[string]string      `json:"data,omitempty"`
+	Mounts      map[string]string      `json:"mounts,omitempty"`
 	Status      string                 `json:"status"`
 	CreatedAt   time.Time              `json:"created_at"`
-	StartedAt   time.Time              `json:"started_at"`
-	FinishedAt  time.Time              `json:"finished_at"`
-	Error       string                 `json:"error"`
+	StartedAt   time.Time              `json:"started_at,omitempty"`
+	FinishedAt  time.Time              `json:"finished_at,omitempty"`
+	Error       string                 `json:"error,omitempty"`
 }
 
 func FromDBRun(run db.Run) (Tool, error) {
