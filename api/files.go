@@ -6,9 +6,16 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/hydrocode-de/gorun/config"
+	"github.com/hydrocode-de/gorun/internal/files"
 )
+
+type FindFilesResponse struct {
+	Count int                `json:"count"`
+	Files []files.ResultFile `json:"files"`
+}
 
 // This function copies uploaded files into a temporary directory and returns the supplied file name and the path in a mapping
 func HandleFileUpload(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
@@ -48,4 +55,33 @@ func HandleFileUpload(w http.ResponseWriter, r *http.Request, c *config.APIConfi
 		"name": handler.Filename,
 		"type": handler.Header.Get("Content-Type"),
 	})
+}
+
+func FindFile(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
+	pattern := r.URL.Query().Get("pattern")
+	if pattern == "" {
+		RespondWithError(w, http.StatusBadRequest, "missing pattern, you need to provide a 'pattern' query parameter")
+		return
+	}
+
+	target := r.URL.Query().Get("target")
+	if target == "" {
+		target = "both"
+	}
+
+	if filepath.Ext(pattern) == "" {
+		pattern += "*.*"
+	}
+
+	matches, err := files.Find(pattern, c.GetMountPath(), files.Target(target))
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ResondWithJSON(w, http.StatusOK, FindFilesResponse{
+		Count: len(matches),
+		Files: matches,
+	})
+
 }

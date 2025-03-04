@@ -129,3 +129,7 @@ func (c *APIConfig) CreateNewMountPaths(strategy string) map[string]string {
 
 	return mounts
 }
+
+func (c *APIConfig) GetMountPath() string {
+	return c.baseMountPath
+}
