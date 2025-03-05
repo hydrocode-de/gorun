@@ -4,3 +4,9 @@ export interface TempFile {
     type: string;
     size: number;
 }
+
+export interface RemoteFile {
+    path: string;
+    name: string;
+    size: number;
+}

@@ -1,7 +1,7 @@
 <script lang="ts">
     import DataInput from "$lib/components/DataInput.svelte";
     import ParameterInput from "$lib/components/ParameterInput.svelte";
-    import type { TempFile } from "$lib/types/TempFile";
+    import type { RemoteFile } from "$lib/types/TempFile";
     import { config } from "$lib/state.svelte";
     import type { PageProps } from "./$types";
     import { goto } from "$app/navigation";
@@ -10,7 +10,7 @@
     $inspect(data);
 
     let parameterValues: {[name: string]: string | number | boolean | Date | null} = $state({});
-    let dataValues: {[name: string]: TempFile} = $state({});
+    let dataValues: {[name: string]: RemoteFile} = $state({});
     $inspect(parameterValues);
     $inspect(dataValues);
 
