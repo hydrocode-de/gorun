@@ -1,7 +1,9 @@
 <script lang="ts">
-    import { config } from "$lib/state.svelte";
+    import { bytesToSize } from "$lib/helper";
+import { config } from "$lib/state.svelte";
     import type { ResultFile } from "$lib/types/ResultFile";
     import type { RemoteFile } from "$lib/types/TempFile";
+    import moment from "moment";
 
     interface $$Props {
         onselect: (file: RemoteFile) => void;
@@ -19,14 +21,17 @@
     let q = $derived(`${pattern}*${selectedExt}`);
     
     // Add more extensions as needed
-    const extensions = ['.*', '.txt', '.csv', '.json'];
+    const extensions = ['.*', '.txt', '.csv', '.json', '.nc', '.tif', '.html'];
 
     async function query() {
         if (pattern.length !== 0 && !loading) {
             loading = true;
             const res = await fetch(`${config.apiServer}/files?pattern=${q}&target=both`);
             const data = await res.json();
-            suggestions = data.files;
+
+            // sort by last modified
+            suggestions = (data.files as ResultFile[]).sort((prev, next) => prev.lastModified! > next.lastModified! ? -1 : 1);
+            //suggestions = data.files;
             loading = false;
         }
     }
@@ -87,7 +92,8 @@
                     class="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                     onclick={() => handleSelect(suggestion)}
                 >
-                <h3 class="text-sm font-medium text-gray-900">{suggestion.name} ({suggestion.size} bytes)</h3>
+                <p class="text-sm font-medium text-gray-500">{moment(suggestion.lastModified).fromNow()}</p>
+                <h3 class="text-sm font-medium text-gray-900">{suggestion.name} ({bytesToSize(suggestion.size)})</h3>
                 <p class="text-sm text-gray-500">{suggestion.absPath}</p>
                 </button>
             {/each}

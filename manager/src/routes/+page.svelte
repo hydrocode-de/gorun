@@ -16,8 +16,14 @@
 
 <div class="max-w-3xl mx-auto pt-8">
     <h1 class="text-3xl font-bold mb-6">Get Started</h1>
-    
-    <div class="mb-8">
+    <p class="text-gray-700">
+        GoRun is a application written in Go, that can execute arbitrary docker based
+        researh tools, using the 
+        <a class="text-sky-600" href="https://vforwater.github.io/tool-specs" target="_blank">Tool-Specs</a>.
+        You need to connect to a GoRun API endpoint, which is typically the same as this web application, 
+        but can be changed to any other remote or local GoRun instance.
+    </p>
+    <div class="mt-4 mb-8">
         <label for="apiServer" class="block text-sm font-medium text-gray-700 mb-2">
             GoRun API endpoint
         </label>
@@ -48,7 +54,22 @@
 
     <div class="mt-12">
         <h2 class="text-2xl font-bold mb-4">HowTo</h2>
-        <p class="text-gray-700">This section will explain everything at one point</p>
+        <p class="text-gray-700">
+            The GoRun instance you are currently looking at, serves the default start page.
+            It implements a number of different Tools, you can try and execute. 
+            It is a demo instance, you can use as a starting point for more specific applications,
+            using less generic entry points.
+        </p>
+    </div>
+
+    <div class="mt-12">
+        <h2 class="text-2xl font-bold mb-4">hydrocode</h2>
+        <p class="text-gray-700">
+            GoRun is open source and freely available, as are all tools served in this instance.
+            GoRun is developed by <a class="text-sky-600" href="https://hydrocode.de" target="_blank">hydrocode GmbH</a>,
+            you can <a href="mailto:info@hydrocode.de">get in touch with us</a> to discuss your specific
+            usecase for GoRun with us.
+        </p>
     </div>
 </div>
 

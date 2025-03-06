@@ -3,4 +3,5 @@ export interface ResultFile {
     relPath: string;
     absPath: string;
     size: number;
+    lastModified?: Date;
 }
