@@ -40,6 +40,15 @@
         $inspect(data);
         await refresh();
     }
+
+    async function onDelete(runId: number) {
+        const runUrl = `${config.apiServer}/runs/${runId}`;
+        const res = await fetch(runUrl, { method: 'DELETE'});
+        const data = await res.json();
+        console.log(data.message);
+
+        await refresh();
+    }
 </script>
 
 <button onclick={refresh} class="text-blue-600 hover:text-blue-800 hover:cursor-pointer" title="Refresh" aria-label="Refresh">
@@ -110,8 +119,9 @@
                         </button>
                         {/if}
                         {#if run.status === 'finished'}
-                        <button 
-                            class="text-blue-600 hover:text-blue-800 hover:cursor-pointer" 
+                        <button
+                            disabled
+                            class="text-gray-200 hover:cursor-not-allowed" 
                             title="Download" 
                             aria-label="Download Result"
                         >
@@ -121,7 +131,12 @@
                         </button>
                         {/if}
                         {#if run.status !== 'running'}
-                        <button disabled class="text-gray-200  hover:cursor-not-allowed" title="Delete" aria-label="Delete Run">
+                        <button 
+                            class="text-red-700  hover:cursor-pointer" 
+                            title="Delete" 
+                            aria-label="Delete Run"
+                            onclick={() => onDelete(run.id)}
+                        >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
