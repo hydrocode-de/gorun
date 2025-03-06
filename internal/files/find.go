@@ -7,13 +7,15 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type ResultFile struct {
-	Name    string `json:"name"`
-	RelPath string `json:"relPath"`
-	AbsPath string `json:"absPath"`
-	Size    int64  `json:"size"`
+	Name         string    `json:"name"`
+	RelPath      string    `json:"relPath"`
+	AbsPath      string    `json:"absPath"`
+	Size         int64     `json:"size"`
+	LastModified time.Time `json:"lastModified"`
 }
 
 func ReadDir(dirname string, recursive bool, toolBasePath string) ([]ResultFile, error) {
@@ -106,10 +108,11 @@ func Find(pattern, mountBasePath string, target Target) ([]ResultFile, error) {
 			}
 			rel, _ := filepath.Rel(mountBasePath, p)
 			matches = append(matches, ResultFile{
-				Name:    d.Name(),
-				AbsPath: p,
-				RelPath: rel,
-				Size:    info.Size(),
+				Name:         d.Name(),
+				AbsPath:      p,
+				RelPath:      rel,
+				Size:         info.Size(),
+				LastModified: info.ModTime(),
 			})
 
 		}
