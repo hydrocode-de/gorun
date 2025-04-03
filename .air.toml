@@ -1,0 +1,10 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+    cmd = "cd manager && npm run build && cd .. && go build -o ./tmp/main ."
+    bin = "./tmp/main serve"
+    delay = 600
+    exclude_dir = ["assets", "temp", "vendor", "manager/node_modules", "internal/frontend/manager", ".svelte-kit"]
+    include_ext = ["go", "html", "svelte", "js", "ts", "css"]
+    exclude_regex = ["_test.go"]
