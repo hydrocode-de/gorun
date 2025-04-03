@@ -9,7 +9,10 @@ const config = {
 
 	kit: {
 		adapter: adapter({
-			fallback: 'index.html'
+			fallback: 'index.html',
+			pages: '../internal/frontend/manager',
+			assets: '../internal/frontend/manager',
+			precompress: false,
 		}),
 		paths: {
 			base: '/manager'

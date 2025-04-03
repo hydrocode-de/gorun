@@ -7,26 +7,30 @@
     import { goto } from "$app/navigation";
 
     let { data }: PageProps = $props();
-    $inspect(data);
+    // $inspect(data);
 
-    let parameterValues: {[name: string]: string | number | boolean | Date | null} = $state({});
+    let parameterValues: {[name: string]: any} = $state({});
     let dataValues: {[name: string]: RemoteFile} = $state({});
     $inspect(parameterValues);
     $inspect(dataValues);
+
+    function updateParameterValues(name: string, value: any) {
+        parameterValues = {...parameterValues, [name]: value};
+    }
 
     let parameterAreValid = $derived(
         !data.parameters ||
         Object.keys(data.parameters)
         .map(name => parameterValues[name] !== null && parameterValues[name] !== undefined && parameterValues[name] !== '')
         .reduce((a, b) => a && b, true)
-    )
+    );
 
     let dataAreValid = $derived(
         !data.data ||
         Object.keys(data.data)
         .map(name => dataValues[name] !== null && dataValues[name] !== undefined)
         .reduce((a, b) => a && b, true)
-    )
+    );
 
     let allValid = $derived(parameterAreValid && dataAreValid);
 
@@ -71,7 +75,7 @@
         <h2 class="text-lg font-semibold text-gray-900 mb-3">Parameters</h2>
         {#if data.parameters}    
             {#each Object.entries(data.parameters) as [name, parameter]}
-                <ParameterInput {parameter} {name} oninput={value => parameterValues[name] = value} />
+                <ParameterInput {parameter} {name} oninput={value => updateParameterValues(name, value)} />
             {/each}
         {:else}
                 <p class="mt-2 text-gray-600">Tool {data.title} has no parameters defined.</p>

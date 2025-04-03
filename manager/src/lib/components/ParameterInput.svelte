@@ -1,16 +1,16 @@
 <script lang="ts">
     import type { ParameterSpec } from "$lib/types/ToolSpec";
+    import StructEditor from "./StructEditor.svelte";
 
     interface ParameterProps {
         parameter: ParameterSpec,
         name: string,
-        oninput: (value: string | number | boolean | Date | null) => void,
+        oninput: (value: string | number | boolean | Date | null | {[key: string]: any}) => void,
     }
     let {parameter, name, oninput}: ParameterProps = $props()
 
-    let value: string | number | boolean | Date | null = $state(parameter.default ? parameter.default : null);
+    let value: string | number | boolean | Date | null | {[key: string]: any} = $state(parameter.default ? parameter.default : null);
     let showDescription = $state(false);
-    oninput(value);
 
 </script>
 
@@ -85,10 +85,14 @@
                     oninput={e => oninput((e.target as HTMLInputElement)!.value)}
                     class="w-full px-3 py-1.5 border border-gray-200 rounded-md shadow-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                 >
-            {/if}
-
-            {#if !parameter.optional && (value === null || value === undefined || value === '')}
-                <span class="text-red-500 text-sm ml-2">Required</span>
+            {:else if parameter.type === 'struct'}
+                <StructEditor 
+                    value={value as {[key: string]: any} || {key: 'your value'}} 
+                    oninput={v => oninput(v)}
+                />
+                {#if !parameter.optional && (value === null || value === undefined || value === '')}
+                    <span class="text-red-500 text-sm ml-2">Required</span>
+                {/if}
             {/if}
         </div>
     </div>
