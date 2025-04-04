@@ -1,15 +1,16 @@
 <script lang="ts">
     import type { ParameterSpec } from "$lib/types/ToolSpec";
     import StructEditor from "./StructEditor.svelte";
+    import ArrayInput from "./ArrayInput.svelte";
 
     interface ParameterProps {
         parameter: ParameterSpec,
         name: string,
-        oninput: (value: string | number | boolean | Date | null | {[key: string]: any}) => void,
+        oninput: (value: string | number | boolean | Date | null | {[key: string]: any} | any[]) => void,
     }
     let {parameter, name, oninput}: ParameterProps = $props()
 
-    let value: string | number | boolean | Date | null | {[key: string]: any} = $state(parameter.default ? parameter.default : null);
+    let value: string | number | boolean | Date | null | {[key: string]: any} | any[] = $state(parameter.default ? parameter.default : null);
     let showDescription = $state(false);
 
 </script>
@@ -45,7 +46,12 @@
         </div>
 
         <div class="w-3/4">
-            {#if parameter.type === 'string'}
+            {#if parameter.array}
+                <ArrayInput 
+                    {parameter} 
+                    oninput={v => oninput(v)} 
+                />
+            {:else if parameter.type === 'string'}
                 <input 
                     type="text" 
                     bind:value 

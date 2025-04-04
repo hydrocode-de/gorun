@@ -1,3 +1,5 @@
+import type { InputParams } from "./InputParams";
+
 export interface ToolSpec {
     id: string;
     name: string;
@@ -11,7 +13,7 @@ export interface ParameterSpec {
     description?: string;
     type: string;
     array?: boolean;
-    default?: boolean;
+    default?: InputParams;
     optional?: boolean;
     values?: string[];
     min?: number;
