@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/hydrocode-de/gorun/config"
+	"github.com/hydrocode-de/gorun/internal/frontend"
 )
 
 func HandleFuncWithConfig(handler func(http.ResponseWriter, *http.Request, *config.APIConfig), c *config.APIConfig) func(http.ResponseWriter, *http.Request) {
@@ -22,7 +23,8 @@ func CreateServer(c *config.APIConfig) (*http.ServeMux, error) {
 	})
 
 	// add a FileServer to serve the manager
-	mux.Handle("/manager/", http.StripPrefix("/manager/", http.FileServer(http.Dir("manager/build"))))
+	//mux.Handle("/manager/", http.StripPrefix("/manager/", http.FileServer(http.Dir("manager/build"))))
+	mux.Handle("/manager/", http.StripPrefix("/manager/", http.FileServerFS(frontend.GetManager())))
 
 	mux.HandleFunc("GET /runs", HandleFuncWithConfig(GetAllRuns, c))
 	mux.HandleFunc("POST /runs", HandleFuncWithConfig(CreateRun, c))
