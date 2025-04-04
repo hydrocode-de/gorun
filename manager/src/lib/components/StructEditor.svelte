@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { GeoJsonObject } from 'geojson';
     import L from 'leaflet';
-    import { JSONEditor } from "svelte-jsoneditor";
+    import { JSONEditor, Mode, type Content } from "svelte-jsoneditor";
 
 
     interface StructEditorProps {
@@ -17,8 +17,9 @@
     let geojsonValue: L.GeoJSON | null = $state(null);
     let map: L.Map | null = $state(null);
 
-    function handleJsonChange(newValue: {json: any | undefined, text: string | undefined}) {
-        if (newValue.json) {
+    //function handleJsonChange(newValue: {json: any | undefined, text: string | undefined}) {
+    function handleJsonChange(newValue: Content) {
+        if ('json' in newValue) {
             const newJson = newValue.json ? { ...newValue.json } : {};
             value = newJson;
             oninput(newJson);
@@ -57,35 +58,8 @@
         }
     }
 
-    // oninput changes the value in the parent component, so we create a copy here
-    // $effect(() => {
-    //     console.log('new value received')
-    //     jsonValue = JSON.parse(JSON.stringify(value));
-    // });
-
-    // $effect(() => {
-    //     console.log('feature effect:', {map, jsonValue, geojsonValue})
-    //     if (!map) return
-    //     if (!jsonValue) return
-    //     if (!jsonValue.type) return
-        
-    //     console.log('feature changed')
-    //     if (jsonValue.type === 'FeatureCollection' || jsonValue.type === 'Feature') {
-    //         if (geojsonValue) {
-    //             map.removeLayer(geojsonValue);
-    //         }
-    //         geojsonValue = L.geoJson(jsonValue);
-
-    //         console.log(geojsonValue);
-    //         geojsonValue.addTo(map);
-    //         map.fitBounds(geojsonValue.getBounds());
-    //     } else {
-    //         geojsonValue = null;
-    //     }
-    // });
-
     $effect(() => {
-        console.log('value effect', value)
+        //console.log('value effect', value)
         if (value && value.type && (value.type === 'FeatureCollection' || value.type === 'Feature')) {
             geojsonDetected = true;
             geojsonValue = L.geoJson(value as GeoJsonObject);
@@ -127,11 +101,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""/>
-     <!-- Make sure you put this AFTER Leaflet's CSS
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""></script> -->
-    
 </svelte:head>
 
 <div class="w-full">
@@ -180,6 +149,8 @@
             <JSONEditor
                 content={{json: value}}
                 onChange={handleJsonChange}
+                statusBar={false}
+                mode={Mode.text}
             />
         </div>
     {/if}
@@ -190,7 +161,13 @@
 
     {#if mode === 'dropzone'}
         <div class="w-full h-[300px] border border-gray-200 rounded-md shadow-sm focus-within:ring-1 focus-within:ring-indigo-500 focus-within:border-indigo-500"    >
-            <div ondrop={handleFileDrop} class="flex flex-col items-center justify-center h-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-500 transition-colors duration-200">
+            <div 
+                aria-label="Dropzone for JSON file"
+                role="button"
+                tabindex="0"
+                ondrop={handleFileDrop} 
+                class="flex flex-col items-center justify-center h-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-500 transition-colors duration-200"
+            >
                 <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
