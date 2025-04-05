@@ -9,15 +9,16 @@ const config = {
 
 	kit: {
 		adapter: adapter({
+			// Single-page app mode
 			fallback: 'index.html',
 			pages: '../internal/frontend/manager',
 			assets: '../internal/frontend/manager',
 			precompress: false,
+			strict: false
 		}),
 		paths: {
 			base: '/manager'
 		}
-		// outDir: '../public/manager'
 	}
 };
 

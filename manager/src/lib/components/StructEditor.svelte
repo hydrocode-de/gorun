@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { GeoJsonObject } from 'geojson';
     import L from 'leaflet';
+    //import 'leaflet-draw';
     import { JSONEditor, Mode, type Content } from "svelte-jsoneditor";
 
 
@@ -74,6 +75,8 @@
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(map);
+
+                var drawControl = new L.Control
             }
             if (geojsonValue) {
                 (geojsonValue as L.GeoJSON).addTo(map);
@@ -101,7 +104,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
+    integrity="sha512-gc3xjCmIy673V6MyOAZhIW93xhM9ei1I+gLbmFjUHIjocENRsLX/QUE1htk5q1XV2D/iie/VQ8DXI6Vu8bexvQ=="
+    crossorigin=""/>
 </svelte:head>
+
 
 <div class="w-full">
     <div class="flex border-b border-gray-200 mb-2">
