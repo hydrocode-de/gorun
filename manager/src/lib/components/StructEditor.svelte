@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { GeoJsonObject } from 'geojson';
     import L from 'leaflet';
-    //import 'leaflet-draw';
+    import 'leaflet-draw';
     import { JSONEditor, Mode, type Content } from "svelte-jsoneditor";
 
 
@@ -11,11 +11,13 @@
     }
 
     let { value, oninput }: StructEditorProps = $props();
-    let mode: 'geojson' | 'editor' | 'dropzone' = $state('editor');
+    let mode: 'geojson' | 'editor' | 'geojson-editor' | 'dropzone' = $state('editor');
     let geojsonDetected = $state(false);
     
     // let jsonValue = $state(JSON.parse(JSON.stringify(value)));
     let geojsonValue: L.GeoJSON | null = $state(null);
+    let drawnItems: L.FeatureGroup = $state(new L.FeatureGroup());
+    let drawControl: L.Control.Draw | null = $state(null);
     let map: L.Map | null = $state(null);
 
     //function handleJsonChange(newValue: {json: any | undefined, text: string | undefined}) {
@@ -76,7 +78,40 @@
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(map);
 
-                var drawControl = new L.Control
+                if (mode === 'geojson-editor') {
+                    drawnItems.addTo(map);
+                    drawControl = new L.Control.Draw({
+                        draw: {
+                            polyline: false,
+                            circle: false,
+                            marker: false
+                        },
+                        // edit: {
+                        //     featureGroup: drawnItems,
+                        // }
+                    })
+                    map.addControl(drawControl);
+                    map.on(L.Draw.Event.CREATED, e => {
+                        drawnItems.addLayer(e.layer);
+
+                        const collection = drawnItems.toGeoJSON() as GeoJSON.FeatureCollection;
+
+                        if (collection.features.length > 0) {
+                            const feat = collection.features[0];
+                            value = {...feat};
+                            oninput(value);
+                            mode = 'geojson';
+                        }
+                    })
+                    // map.on(L.Draw.Event.EDITED, e => {
+                    //     console.log(e);
+                    //     drawnItems.addLayer(e.layer);
+                    // })
+                    // map.on(L.Draw.Event.DELETED, e => {
+                    //     console.log(e);
+                    //     drawnItems.removeLayer(e.layer);
+                    // })
+                }
             }
             if (geojsonValue) {
                 (geojsonValue as L.GeoJSON).addTo(map);
@@ -88,11 +123,15 @@
         if (map) {
             map.remove();
             map = null;
+            drawControl = null;
+            drawnItems.clearLayers();
+            drawnItems.remove();
+            drawnItems = new L.FeatureGroup();
         }
     }
 
     $effect(() => {
-        if (mode === 'geojson') {
+        if (mode === 'geojson' || mode === 'geojson-editor') {
             initMap();
         } else {
             destroyMap();
@@ -107,6 +146,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
     integrity="sha512-gc3xjCmIy673V6MyOAZhIW93xhM9ei1I+gLbmFjUHIjocENRsLX/QUE1htk5q1XV2D/iie/VQ8DXI6Vu8bexvQ=="
     crossorigin=""/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 </svelte:head>
 
 
@@ -130,13 +170,30 @@
             class:text-indigo-600={mode === 'geojson' && geojsonDetected}
             class:border-transparent={mode !== 'geojson' || !geojsonDetected}
             class:text-gray-500={mode !== 'geojson' || !geojsonDetected}
-            class:hover:text-gray-700={mode !== 'geojson' || !geojsonDetected}
-            class:hover:border-gray-300={mode !== 'geojson' || !geojsonDetected}
+            class:hover:text-gray-700={mode !== 'geojson' && geojsonDetected}
+            class:hover:border-gray-300={mode !== 'geojson' && geojsonDetected}
+            class:hover:cursor-not-allowed={!geojsonDetected}
             onclick={() => mode = 'geojson'}
             disabled={!geojsonDetected}
         >
             {geojsonDetected ? 'GeoJSON' : 'no GeoJSON detected'}
         </button>
+        {#if !geojsonDetected}
+            <button
+                class="px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200"
+                class:border-indigo-500={mode === 'geojson-editor'}
+                class:text-indigo-600={mode === 'geojson-editor'}
+                class:border-transparent={mode !== 'geojson-editor'}
+                class:text-gray-500={mode !== 'geojson-editor'}
+                class:hover:text-gray-700={mode !== 'geojson-editor' && !geojsonDetected}
+                class:hover:border-gray-300={mode !== 'geojson-editor' && !geojsonDetected}
+                class:hover:cursor-not-allowed={geojsonDetected}
+                onclick={() => mode = 'geojson-editor'}
+                disabled={geojsonDetected}
+            >
+                Create GeoJSON
+            </button>
+        {/if}
         <!-- <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200"
             class:border-indigo-500={mode === 'dropzone'}
@@ -162,7 +219,7 @@
         </div>
     {/if}
 
-    {#if mode === 'geojson'}
+    {#if mode === 'geojson' || mode === 'geojson-editor'}
         <div id="map" class="w-full h-[300px]"></div>
     {/if}
 
