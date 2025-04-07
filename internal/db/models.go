@@ -9,6 +9,14 @@ import (
 	"time"
 )
 
+type ApiKey struct {
+	ID         int64        `json:"id"`
+	Key        string       `json:"key"`
+	CreatedAt  time.Time    `json:"createdAt"`
+	LastUsed   sql.NullTime `json:"lastUsed"`
+	ValidUntil sql.NullTime `json:"validUntil"`
+}
+
 type Run struct {
 	ID           int64          `json:"id"`
 	Name         string         `json:"name"`

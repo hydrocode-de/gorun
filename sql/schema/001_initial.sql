@@ -16,5 +16,14 @@ CREATE TABLE runs (
     error_message TEXT
 );
 
+CREATE TABLE api_keys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key text NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used DATETIME,
+    valid_until DATETIME
+);
+
 -- +goose Down
 DROP TABLE runs;
+DROP TABLE api_keys;

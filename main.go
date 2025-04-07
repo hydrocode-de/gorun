@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/hydrocode-de/gorun/api"
 	"github.com/hydrocode-de/gorun/config"
+	"github.com/hydrocode-de/gorun/internal/auth"
 	"github.com/hydrocode-de/gorun/internal/files"
 	"github.com/hydrocode-de/gorun/internal/toolImage"
 	"github.com/joho/godotenv"
@@ -100,6 +101,17 @@ func main() {
 			for _, match := range matches {
 				fmt.Printf("- %v\n", match)
 			}
+		}
+
+		if os.Args[1] == "create-key" {
+			key, err := auth.CreateNewApiKey(context.Background(), config.GetDB(), 0)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println("Created a new API key for GoRun. Store this key, as you can't retrieve it later:")
+			fmt.Println(key)
+			fmt.Println()
 		}
 
 	} else {

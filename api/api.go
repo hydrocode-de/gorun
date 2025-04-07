@@ -3,10 +3,34 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/hydrocode-de/gorun/config"
+	"github.com/hydrocode-de/gorun/internal/auth"
 	"github.com/hydrocode-de/gorun/internal/frontend"
 )
+
+func HandleRequireApiKey(handler func(http.ResponseWriter, *http.Request) error, c *config.APIConfig) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+
+		if authHeader == "" || apiKey == "" {
+			RespondWithError(w, http.StatusUnauthorized, "missing api key in Authorization header")
+			return
+		}
+
+		// the validation function is returning an error if the key is invalid
+		// sorry this look maybe a bit confusing compared to other go code
+		err := auth.ValidateApiKey(apiKey, r.Context(), c.GetDB())
+		if err != nil {
+			handler(w, r)
+		} else {
+			RespondWithError(w, http.StatusUnauthorized, err.Error())
+		}
+
+	}
+}
 
 func HandleFuncWithConfig(handler func(http.ResponseWriter, *http.Request, *config.APIConfig), c *config.APIConfig) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
