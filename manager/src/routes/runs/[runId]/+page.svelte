@@ -15,6 +15,24 @@
 <div>
     <h1 class="text-2xl font-bold text-gray-900">{run.title}</h1>
     <p class="mt-2 text-gray-600">{run.description}</p>
+    <div class="my-4 p-3 rounded-lg border border-gray-200">
+        <table class="w-full text-sm">
+            <tbody>
+                <tr class="bg-gray-50">
+                    <td class="p-2 font-semibold">Status</td>
+                    <td class="p-2">{run.status}</td>
+                </tr>
+                <tr>
+                    <td class="p-2 font-semibold">Has Error</td>
+                    <td class="p-2">{run.has_errored ? 'Yes' : 'No'}</td>
+                </tr>
+                <tr class="bg-gray-50">
+                    <td class="p-2 font-semibold">Run ID</td>
+                    <td class="p-2">{run.id}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
     {#if run.status === 'running'}
         <div class="mt-2 text-sm text-gray-600">

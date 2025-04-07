@@ -17,5 +17,6 @@ export interface RunState {
     created_at: Date,
     started_at?: Date,
     finished_at?: Date,
+    has_errored: boolean,
     error_message?: string
 }

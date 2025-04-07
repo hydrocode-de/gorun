@@ -9,8 +9,18 @@ export const load: PageLoad = async ({ params, parent, fetch }): Promise<{run: R
 
     let files: ResultFile[];
     if (run) {
-        const resp = await fetch(`${config.apiServer}/runs/${run.id}/results`);
-        const res = await resp.json();
+        const res = await fetch(`${config.apiServer}/runs/${run.id}/results`).then(resp => {
+            if (resp.ok) {
+                return resp.json();
+            } else {
+                throw new Error(`Failed to fetch results for run ${run.id}`);
+            }
+        }).catch(error => {
+            console.log(`Failed to fetch results for run ${run.id}`, error);
+            return {
+                files: []
+            }
+        });
 
         files = res.files;
     } else {
