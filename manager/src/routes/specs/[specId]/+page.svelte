@@ -6,9 +6,10 @@
     import type { PageProps } from "./$types";
     import { goto } from "$app/navigation";
     import ClInfo from "./CLInfo.svelte";
+    import type { ToolSpec } from "$lib/types/ToolSpec";
 
     let { data }: PageProps = $props();
-    // $inspect(data);
+    let spec: ToolSpec = $state(data.spec!);
 
     let parameterValues: {[name: string]: any} = $state({});
     let dataValues: {[name: string]: RemoteFile} = $state({});
@@ -22,28 +23,28 @@
     }
 
     let parameterAreValid = $derived(
-        !data.parameters ||
-        Object.keys(data.parameters)
+        !spec.parameters ||
+        Object.keys(spec.parameters)
         .map(name => parameterValues[name] !== null && parameterValues[name] !== undefined && parameterValues[name] !== '')
         .reduce((a, b) => a && b, true)
     );
 
     let dataAreValid = $derived(
-        !data.data ||
-        Object.keys(data.data)
+        !spec.data ||
+        Object.keys(spec.data)
         .map(name => dataValues[name] !== null && dataValues[name] !== undefined)
         .reduce((a, b) => a && b, true)
     );
 
     let allValid = $derived(parameterAreValid && dataAreValid);
 
-    let dockerImage = $derived(data.id!.split('::')[0]);
-    let toolName = $derived(data.id!.split('::')[1]);
+    let dockerImage = $derived(spec.id.split('::')[0]);
+    let toolName = $derived(spec.id.split('::')[1]);
 
     function startRun() {
-        const [dockerImage, toolName, ...o] = data.id!.split('::');
-        if (!dockerImage || !toolName || data.name !== toolName || o.length > 0) {
-            console.error(`Invalid tool slug: ${data.id}`) 
+        const [dockerImage, toolName, ...o] = spec.id.split('::');
+        if (!dockerImage || !toolName || spec.name !== toolName || o.length > 0) {
+            console.error(`Invalid tool slug: ${spec.id}`) 
             return 
         }
 
@@ -72,10 +73,10 @@
 
 
 <div>
-    <h1 class="text-2xl font-bold text-gray-900">{data.title}</h1>
-    <h4 class="text-md font-semibold text-gray-500">ID: {data.id}</h4>
+    <h1 class="text-2xl font-bold text-gray-900">{spec.title}</h1>
+    <h4 class="text-md font-semibold text-gray-500">ID: {spec.id}</h4>
     
-    <p class="mt-2 text-gray-600">{data.description}</p>
+    <p class="mt-2 text-gray-600">{spec.description}</p>
 
     <div class="flex mt-4 ml-6">
         <button 
@@ -106,12 +107,12 @@
     {#if currentTab === 'parameters'}
         <div class="p-3 rounded-lg border border-gray-200 shadow-md mb-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-3">Parameters</h2>
-                {#if data.parameters}    
-                    {#each Object.entries(data.parameters) as [name, parameter]}
+                {#if spec.parameters}    
+                    {#each Object.entries(spec.parameters) as [name, parameter]}
                     <ParameterInput {parameter} {name} oninput={value => updateParameterValues(name, value)} />
                 {/each}
             {:else}
-                    <p class="mt-2 text-gray-600">Tool {data.title} has no parameters defined.</p>
+                    <p class="mt-2 text-gray-600">Tool {spec.title} has no parameters defined.</p>
             {/if}
             {#if parameterAreValid}
                 <p class="mt-2 text-green-500">All parameters are valid</p>
@@ -122,8 +123,8 @@
 
         <div class="p-3 rounded-lg border border-gray-200 shadow-md my-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-3">Data</h2>
-            {#if data.data}
-                {#each Object.entries(data.data) as [name, dataSpec]}
+            {#if spec.data}
+                {#each Object.entries(spec.data) as [name, dataSpec]}
                     <DataInput {name} data={dataSpec} onupload={f => f ? dataValues[name] = {...f} : delete dataValues[name]} /> 
                 {/each}
                 {#if dataAreValid}
@@ -132,11 +133,11 @@
                         <p class="mt-2 text-red-600">Some required data is not yet set.</p>
                 {/if}
             {:else}
-                <p class="mt-2 text-gray-600">Tool {data.title} does not require any data</p>
+                <p class="mt-2 text-gray-600">Tool {spec.title} does not require any data</p>
             {/if}
         </div>
     {:else if currentTab === 'cli'}
-        <ClInfo id={data.id!} name={toolName} image={dockerImage} {parameterValues} {dataValues} />
+        <ClInfo id={spec.id} name={toolName} image={dockerImage} {parameterValues} {dataValues} />
     {/if}
 
 </div>
