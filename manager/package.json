@@ -25,6 +25,7 @@
 		"vite": "^6.0.0"
 	},
 	"dependencies": {
+		"highlight.js": "^11.11.1",
 		"leaflet": "^1.9.4",
 		"leaflet-draw": "^1.0.4",
 		"moment": "^2.30.1",
