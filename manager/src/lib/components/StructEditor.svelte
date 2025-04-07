@@ -68,14 +68,16 @@
             geojsonValue = L.geoJson(value as GeoJsonObject);
         } else {
             geojsonDetected = false;
+            geojsonValue = null;
         }
     });
 
     function initMap(){
             if (!map) {
-                map = L.map('map').setView([51.505, -0.09], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                map = L.map('map').setView([13.12, 16.1], 6);
+                L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 22,
+                    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
                 }).addTo(map);
 
                 if (mode === 'geojson-editor') {
@@ -84,6 +86,7 @@
                         draw: {
                             polyline: false,
                             circle: false,
+                            circlemarker: false,
                             marker: false
                         },
                         // edit: {
@@ -98,21 +101,20 @@
 
                         if (collection.features.length > 0) {
                             const feat = collection.features[0];
+                            drawnItems.clearLayers();
+                            drawnItems.remove();
+                            drawnItems = new L.FeatureGroup();
+                            drawControl?.remove();
+                            drawControl = null;
+
                             value = {...feat};
                             oninput(value);
                             mode = 'geojson';
                         }
                     })
-                    // map.on(L.Draw.Event.EDITED, e => {
-                    //     console.log(e);
-                    //     drawnItems.addLayer(e.layer);
-                    // })
-                    // map.on(L.Draw.Event.DELETED, e => {
-                    //     console.log(e);
-                    //     drawnItems.removeLayer(e.layer);
-                    // })
                 }
             }
+
             if (geojsonValue) {
                 (geojsonValue as L.GeoJSON).addTo(map);
                 map.fitBounds(geojsonValue.getBounds());

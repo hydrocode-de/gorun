@@ -5,6 +5,7 @@
     import { config } from "$lib/state.svelte";
     import type { PageProps } from "./$types";
     import { goto } from "$app/navigation";
+    import ClInfo from "./CLInfo.svelte";
 
     let { data }: PageProps = $props();
     // $inspect(data);
@@ -13,6 +14,8 @@
     let dataValues: {[name: string]: RemoteFile} = $state({});
     $inspect(parameterValues);
     $inspect(dataValues);
+
+    let currentTab: 'parameters' | 'cli' = $state('parameters');
 
     function updateParameterValues(name: string, value: any) {
         parameterValues = {...parameterValues, [name]: value};
@@ -33,6 +36,9 @@
     );
 
     let allValid = $derived(parameterAreValid && dataAreValid);
+
+    let dockerImage = $derived(data.id!.split('::')[0]);
+    let toolName = $derived(data.id!.split('::')[1]);
 
     function startRun() {
         const [dockerImage, toolName, ...o] = data.id!.split('::');
@@ -71,41 +77,73 @@
     
     <p class="mt-2 text-gray-600">{data.description}</p>
 
-    <div class="p-3 rounded-lg border border-gray-200 shadow-md my-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-3">Parameters</h2>
-        {#if data.parameters}    
-            {#each Object.entries(data.parameters) as [name, parameter]}
-                <ParameterInput {parameter} {name} oninput={value => updateParameterValues(name, value)} />
-            {/each}
-        {:else}
-                <p class="mt-2 text-gray-600">Tool {data.title} has no parameters defined.</p>
-        {/if}
-        {#if parameterAreValid}
-            <p class="mt-2 text-green-500">All parameters are valid</p>
-        {:else}
-            <p class="mt-2 text-red-600">Some required parameters are not yet set.</p>
-        {/if}
+    <div class="flex mt-4 ml-6">
+        <button 
+        class="px-4 pt-2 text-sm font-medium border-b-1 transition-colors duration-200" 
+        onclick={() => currentTab = 'parameters'}
+        class:border-indigo-500={currentTab === 'parameters'}
+        class:text-indigo-600={currentTab === 'parameters'}
+        class:border-transparent={currentTab !== 'parameters'}
+        class:text-gray-500={currentTab !== 'parameters'}
+        class:hover:text-gray-700={currentTab !== 'parameters'}
+        class:hover:border-gray-300={currentTab !== 'parameters'}
+        >
+        Parameters
+    </button>
+    <button
+        class="px-4 pt-2 text-sm font-medium border-b-1 transition-colors duration-200"
+        onclick={() => currentTab = 'cli'}
+        class:border-indigo-500={currentTab === 'cli'}
+        class:text-indigo-600={currentTab === 'cli'}
+        class:border-transparent={currentTab !== 'cli'}
+        class:text-gray-500={currentTab !== 'cli'}
+        class:hover:text-gray-700={currentTab !== 'cli'}
+        class:hover:border-gray-300={currentTab !== 'cli'}
+    >
+        API Access</button>
     </div>
 
-    <div class="p-3 rounded-lg border border-gray-200 shadow-md my-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-3">Data</h2>
-        {#if data.data}
-            {#each Object.entries(data.data) as [name, dataSpec]}
-                <DataInput {name} data={dataSpec} onupload={f => f ? dataValues[name] = {...f} : delete dataValues[name]} /> 
-            {/each}
-            {#if dataAreValid}
-                    <p class="mt-2 text-green-500">All data is valid</p>
+    {#if currentTab === 'parameters'}
+        <div class="p-3 rounded-lg border border-gray-200 shadow-md mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-3">Parameters</h2>
+                {#if data.parameters}    
+                    {#each Object.entries(data.parameters) as [name, parameter]}
+                    <ParameterInput {parameter} {name} oninput={value => updateParameterValues(name, value)} />
+                {/each}
             {:else}
-                    <p class="mt-2 text-red-600">Some required data is not yet set.</p>
+                    <p class="mt-2 text-gray-600">Tool {data.title} has no parameters defined.</p>
             {/if}
-        {:else}
-            <p class="mt-2 text-gray-600">Tool {data.title} does not require any data</p>
-        {/if}
-    </div>
+            {#if parameterAreValid}
+                <p class="mt-2 text-green-500">All parameters are valid</p>
+            {:else}
+                <p class="mt-2 text-red-600">Some required parameters are not yet set.</p>
+            {/if}
+        </div>
+
+        <div class="p-3 rounded-lg border border-gray-200 shadow-md my-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Data</h2>
+            {#if data.data}
+                {#each Object.entries(data.data) as [name, dataSpec]}
+                    <DataInput {name} data={dataSpec} onupload={f => f ? dataValues[name] = {...f} : delete dataValues[name]} /> 
+                {/each}
+                {#if dataAreValid}
+                        <p class="mt-2 text-green-500">All data is valid</p>
+                {:else}
+                        <p class="mt-2 text-red-600">Some required data is not yet set.</p>
+                {/if}
+            {:else}
+                <p class="mt-2 text-gray-600">Tool {data.title} does not require any data</p>
+            {/if}
+        </div>
+    {:else if currentTab === 'cli'}
+        <ClInfo id={data.id!} name={toolName} image={dockerImage} {parameterValues} {dataValues} />
+    {/if}
+
 </div>
 {#if allValid}
 <button class="w-full px-3 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 transition-colors cursor-pointer" onclick={startRun}>
     Create
 </button>
 {/if}
+
 
