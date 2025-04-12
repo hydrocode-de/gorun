@@ -1,7 +1,12 @@
 <script lang="ts">
+    import { logout, initializeAuth } from '$lib/auth.svelte';
+    import { config } from '$lib/state.svelte';
 	import '../app.css';
 
 	let { children } = $props();
+    
+    initializeAuth();
+	$inspect(config);
 </script>
 
 <div class="min-h-screen flex flex-col">
@@ -12,6 +17,11 @@
 				<a href="/manager" class="hover:text-gray-300">Home</a>
 				<a href="/manager/specs" class="hover:text-gray-300">Tools</a>
 				<a href="/manager/runs" class="hover:text-gray-300">Runs</a>
+				{#if !config.refreshToken}
+					<a href="/manager/login" class="hover:text-gray-300">Login</a>
+				{:else}
+					<button onclick={() => logout()} class="hover:text-gray-300">Logout</button>
+				{/if}
 			</div>
 		</div>
 	</nav>
