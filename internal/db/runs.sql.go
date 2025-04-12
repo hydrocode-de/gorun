@@ -11,9 +11,9 @@ import (
 )
 
 const createRun = `-- name: CreateRun :one
-INSERT INTO runs (name, title, description, docker_image, parameters, data, mounts, created_at)
-VALUES (?,?,?,?,?,?,?,datetime('now'))
-RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message
+INSERT INTO runs (name, title, description, docker_image, parameters, data, mounts, created_at, user_id)
+VALUES (?,?,?,?,?,?,?,datetime('now'),?)
+RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message, user_id
 `
 
 type CreateRunParams struct {
@@ -24,6 +24,7 @@ type CreateRunParams struct {
 	Parameters  string `json:"parameters"`
 	Data        string `json:"data"`
 	Mounts      string `json:"mounts"`
+	UserID      string `json:"userId"`
 }
 
 func (q *Queries) CreateRun(ctx context.Context, arg CreateRunParams) (Run, error) {
@@ -35,6 +36,7 @@ func (q *Queries) CreateRun(ctx context.Context, arg CreateRunParams) (Run, erro
 		arg.Parameters,
 		arg.Data,
 		arg.Mounts,
+		arg.UserID,
 	)
 	var i Run
 	err := row.Scan(
@@ -52,23 +54,34 @@ func (q *Queries) CreateRun(ctx context.Context, arg CreateRunParams) (Run, erro
 		&i.Status,
 		&i.HasErrored,
 		&i.ErrorMessage,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const deleteRun = `-- name: DeleteRun :exec
-DELETE FROM runs WHERE id = ?
+DELETE FROM runs
+WHERE runs.id = ? AND (
+  (SELECT u.is_admin FROM users u WHERE u.id = ?) = TRUE 
+  OR runs.user_id = ?
+)
 `
 
-func (q *Queries) DeleteRun(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteRun, id)
+type DeleteRunParams struct {
+	ID     int64  `json:"id"`
+	ID_2   string `json:"id2"`
+	UserID string `json:"userId"`
+}
+
+func (q *Queries) DeleteRun(ctx context.Context, arg DeleteRunParams) error {
+	_, err := q.db.ExecContext(ctx, deleteRun, arg.ID, arg.ID_2, arg.UserID)
 	return err
 }
 
 const finishRun = `-- name: FinishRun :one
 UPDATE runs SET status = 'finished', finished_at = datetime('now')
-WHERE id = ?
-RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message
+WHERE runs.id = ?
+RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message, user_id
 `
 
 func (q *Queries) FinishRun(ctx context.Context, id int64) (Run, error) {
@@ -89,16 +102,24 @@ func (q *Queries) FinishRun(ctx context.Context, id int64) (Run, error) {
 		&i.Status,
 		&i.HasErrored,
 		&i.ErrorMessage,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const getAllRuns = `-- name: GetAllRuns :many
-SELECT id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message FROM runs
+SELECT r.id, r.name, r.title, r.description, r.docker_image, r.mounts, r.parameters, r.data, r.created_at, r.started_at, r.finished_at, r.status, r.has_errored, r.error_message, r.user_id FROM runs r
+WHERE (SELECT u.is_admin FROM users u WHERE u.id = ?) = TRUE 
+   OR r.user_id = ?
 `
 
-func (q *Queries) GetAllRuns(ctx context.Context) ([]Run, error) {
-	rows, err := q.db.QueryContext(ctx, getAllRuns)
+type GetAllRunsParams struct {
+	ID     string `json:"id"`
+	UserID string `json:"userId"`
+}
+
+func (q *Queries) GetAllRuns(ctx context.Context, arg GetAllRunsParams) ([]Run, error) {
+	rows, err := q.db.QueryContext(ctx, getAllRuns, arg.ID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -121,6 +142,7 @@ func (q *Queries) GetAllRuns(ctx context.Context) ([]Run, error) {
 			&i.Status,
 			&i.HasErrored,
 			&i.ErrorMessage,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -136,11 +158,20 @@ func (q *Queries) GetAllRuns(ctx context.Context) ([]Run, error) {
 }
 
 const getErroredRuns = `-- name: GetErroredRuns :many
-SELECT id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message FROM runs WHERE status = 'errored'
+SELECT r.id, r.name, r.title, r.description, r.docker_image, r.mounts, r.parameters, r.data, r.created_at, r.started_at, r.finished_at, r.status, r.has_errored, r.error_message, r.user_id FROM runs r
+WHERE r.status = 'errored' AND (
+  (SELECT u.is_admin FROM users u WHERE u.id = ?) = TRUE 
+  OR r.user_id = ?
+)
 `
 
-func (q *Queries) GetErroredRuns(ctx context.Context) ([]Run, error) {
-	rows, err := q.db.QueryContext(ctx, getErroredRuns)
+type GetErroredRunsParams struct {
+	ID     string `json:"id"`
+	UserID string `json:"userId"`
+}
+
+func (q *Queries) GetErroredRuns(ctx context.Context, arg GetErroredRunsParams) ([]Run, error) {
+	rows, err := q.db.QueryContext(ctx, getErroredRuns, arg.ID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -163,6 +194,7 @@ func (q *Queries) GetErroredRuns(ctx context.Context) ([]Run, error) {
 			&i.Status,
 			&i.HasErrored,
 			&i.ErrorMessage,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -178,11 +210,20 @@ func (q *Queries) GetErroredRuns(ctx context.Context) ([]Run, error) {
 }
 
 const getFinishedRuns = `-- name: GetFinishedRuns :many
-SELECT id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message FROM runs WHERE status = 'finished'
+SELECT r.id, r.name, r.title, r.description, r.docker_image, r.mounts, r.parameters, r.data, r.created_at, r.started_at, r.finished_at, r.status, r.has_errored, r.error_message, r.user_id FROM runs r
+WHERE r.status = 'finished' AND (
+  (SELECT u.is_admin FROM users u WHERE u.id = ?) = TRUE 
+  OR r.user_id = ?
+)
 `
 
-func (q *Queries) GetFinishedRuns(ctx context.Context) ([]Run, error) {
-	rows, err := q.db.QueryContext(ctx, getFinishedRuns)
+type GetFinishedRunsParams struct {
+	ID     string `json:"id"`
+	UserID string `json:"userId"`
+}
+
+func (q *Queries) GetFinishedRuns(ctx context.Context, arg GetFinishedRunsParams) ([]Run, error) {
+	rows, err := q.db.QueryContext(ctx, getFinishedRuns, arg.ID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -205,6 +246,7 @@ func (q *Queries) GetFinishedRuns(ctx context.Context) ([]Run, error) {
 			&i.Status,
 			&i.HasErrored,
 			&i.ErrorMessage,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -220,11 +262,20 @@ func (q *Queries) GetFinishedRuns(ctx context.Context) ([]Run, error) {
 }
 
 const getIdleRuns = `-- name: GetIdleRuns :many
-SELECT id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message FROM runs WHERE status = 'pending'
+SELECT r.id, r.name, r.title, r.description, r.docker_image, r.mounts, r.parameters, r.data, r.created_at, r.started_at, r.finished_at, r.status, r.has_errored, r.error_message, r.user_id FROM runs r
+WHERE r.status = 'pending' AND (
+  (SELECT u.is_admin FROM users u WHERE u.id = ?) = TRUE 
+  OR r.user_id = ?
+)
 `
 
-func (q *Queries) GetIdleRuns(ctx context.Context) ([]Run, error) {
-	rows, err := q.db.QueryContext(ctx, getIdleRuns)
+type GetIdleRunsParams struct {
+	ID     string `json:"id"`
+	UserID string `json:"userId"`
+}
+
+func (q *Queries) GetIdleRuns(ctx context.Context, arg GetIdleRunsParams) ([]Run, error) {
+	rows, err := q.db.QueryContext(ctx, getIdleRuns, arg.ID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -247,6 +298,7 @@ func (q *Queries) GetIdleRuns(ctx context.Context) ([]Run, error) {
 			&i.Status,
 			&i.HasErrored,
 			&i.ErrorMessage,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -262,11 +314,21 @@ func (q *Queries) GetIdleRuns(ctx context.Context) ([]Run, error) {
 }
 
 const getRun = `-- name: GetRun :one
-SELECT id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message FROM runs WHERE id = ?
+SELECT r.id, r.name, r.title, r.description, r.docker_image, r.mounts, r.parameters, r.data, r.created_at, r.started_at, r.finished_at, r.status, r.has_errored, r.error_message, r.user_id FROM runs r
+WHERE r.id = ? AND (
+  (SELECT u.is_admin FROM users u WHERE u.id = ?) = TRUE 
+  OR r.user_id = ?
+)
 `
 
-func (q *Queries) GetRun(ctx context.Context, id int64) (Run, error) {
-	row := q.db.QueryRowContext(ctx, getRun, id)
+type GetRunParams struct {
+	ID     int64  `json:"id"`
+	ID_2   string `json:"id2"`
+	UserID string `json:"userId"`
+}
+
+func (q *Queries) GetRun(ctx context.Context, arg GetRunParams) (Run, error) {
+	row := q.db.QueryRowContext(ctx, getRun, arg.ID, arg.ID_2, arg.UserID)
 	var i Run
 	err := row.Scan(
 		&i.ID,
@@ -283,16 +345,26 @@ func (q *Queries) GetRun(ctx context.Context, id int64) (Run, error) {
 		&i.Status,
 		&i.HasErrored,
 		&i.ErrorMessage,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const getRunning = `-- name: GetRunning :many
-SELECT id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message FROM runs WHERE status = 'running'
+SELECT r.id, r.name, r.title, r.description, r.docker_image, r.mounts, r.parameters, r.data, r.created_at, r.started_at, r.finished_at, r.status, r.has_errored, r.error_message, r.user_id FROM runs r
+WHERE r.status = 'running' AND (
+  (SELECT u.is_admin FROM users u WHERE u.id = ?) = TRUE 
+  OR r.user_id = ?
+)
 `
 
-func (q *Queries) GetRunning(ctx context.Context) ([]Run, error) {
-	rows, err := q.db.QueryContext(ctx, getRunning)
+type GetRunningParams struct {
+	ID     string `json:"id"`
+	UserID string `json:"userId"`
+}
+
+func (q *Queries) GetRunning(ctx context.Context, arg GetRunningParams) ([]Run, error) {
+	rows, err := q.db.QueryContext(ctx, getRunning, arg.ID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -315,6 +387,7 @@ func (q *Queries) GetRunning(ctx context.Context) ([]Run, error) {
 			&i.Status,
 			&i.HasErrored,
 			&i.ErrorMessage,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -331,8 +404,8 @@ func (q *Queries) GetRunning(ctx context.Context) ([]Run, error) {
 
 const runErrored = `-- name: RunErrored :one
 UPDATE runs SET status = 'errored', error_message = ?, finished_at = datetime('now'), has_errored = TRUE
-WHERE id = ?
-RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message
+WHERE runs.id = ?
+RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message, user_id
 `
 
 type RunErroredParams struct {
@@ -358,18 +431,29 @@ func (q *Queries) RunErrored(ctx context.Context, arg RunErroredParams) (Run, er
 		&i.Status,
 		&i.HasErrored,
 		&i.ErrorMessage,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const startRun = `-- name: StartRun :one
-UPDATE runs SET status = 'running', started_at = datetime('now')
-WHERE id = ?
-RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message
+UPDATE runs
+SET status = 'running', started_at = datetime('now')
+WHERE runs.id = ? AND (
+  (SELECT u.is_admin FROM users u WHERE u.id = ?) = TRUE 
+  OR runs.user_id = ?
+)
+RETURNING id, name, title, description, docker_image, mounts, parameters, data, created_at, started_at, finished_at, status, has_errored, error_message, user_id
 `
 
-func (q *Queries) StartRun(ctx context.Context, id int64) (Run, error) {
-	row := q.db.QueryRowContext(ctx, startRun, id)
+type StartRunParams struct {
+	ID     int64  `json:"id"`
+	ID_2   string `json:"id2"`
+	UserID string `json:"userId"`
+}
+
+func (q *Queries) StartRun(ctx context.Context, arg StartRunParams) (Run, error) {
+	row := q.db.QueryRowContext(ctx, startRun, arg.ID, arg.ID_2, arg.UserID)
 	var i Run
 	err := row.Scan(
 		&i.ID,
@@ -386,6 +470,7 @@ func (q *Queries) StartRun(ctx context.Context, id int64) (Run, error) {
 		&i.Status,
 		&i.HasErrored,
 		&i.ErrorMessage,
+		&i.UserID,
 	)
 	return i, err
 }

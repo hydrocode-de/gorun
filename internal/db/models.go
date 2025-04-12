@@ -9,12 +9,13 @@ import (
 	"time"
 )
 
-type ApiKey struct {
-	ID         int64        `json:"id"`
-	Key        string       `json:"key"`
-	CreatedAt  time.Time    `json:"createdAt"`
-	LastUsed   sql.NullTime `json:"lastUsed"`
-	ValidUntil sql.NullTime `json:"validUntil"`
+type RefreshToken struct {
+	ID        int64     `json:"id"`
+	UserID    string    `json:"userId"`
+	Token     string    `json:"token"`
+	CreatedAt time.Time `json:"createdAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	IsRevoked bool      `json:"isRevoked"`
 }
 
 type Run struct {
@@ -32,4 +33,14 @@ type Run struct {
 	Status       string         `json:"status"`
 	HasErrored   bool           `json:"hasErrored"`
 	ErrorMessage sql.NullString `json:"errorMessage"`
+	UserID       string         `json:"userId"`
+}
+
+type User struct {
+	ID           string       `json:"id"`
+	Email        string       `json:"email"`
+	PasswordHash string       `json:"passwordHash"`
+	IsAdmin      bool         `json:"isAdmin"`
+	CreatedAt    time.Time    `json:"createdAt"`
+	LastLogin    sql.NullTime `json:"lastLogin"`
 }
