@@ -31,3 +31,6 @@ gorun
 internal/frontend/manager
 tmp
 test.json
+
+# dev files
+gorun_dev/

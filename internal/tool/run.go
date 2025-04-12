@@ -23,12 +23,15 @@ type RunToolOptions struct {
 	Cmd  []string
 }
 
-func RunTool(ctx context.Context, c *client.Client, opt RunToolOptions) error {
+func RunTool(ctx context.Context, c *client.Client, opt RunToolOptions, user_id string) error {
 	// create a function to update the database
 	updateDB := func(status string, origError error) {
 		switch status {
 		case "started":
-			_, err := opt.DB.StartRun(ctx, opt.Tool.ID)
+			_, err := opt.DB.StartRun(ctx, db.StartRunParams{
+				ID:     opt.Tool.ID,
+				UserID: user_id,
+			})
 			if err != nil {
 				log.Fatal(err)
 			}

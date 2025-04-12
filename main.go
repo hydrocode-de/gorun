@@ -48,6 +48,17 @@ func main() {
 		}
 	}()
 
+	// create a ticker to renew the admin credentials every 50 minutes
+	tickerAdmin := time.NewTicker(time.Minute * 50)
+	go func() {
+		for range tickerAdmin.C {
+			log.Println("Renewing admin credentials")
+			if _, err := config.GetAdminCredentials(); err != nil {
+				log.Printf("Failed to renew admin credentials: %s...\n", err)
+			}
+		}
+	}()
+
 	go toolImage.ReadAllTools(context.Background(), docker, &config.Cache)
 	go func() {
 		for range ticker.C {
@@ -61,60 +72,85 @@ func main() {
 
 	// DEV section
 	// read in a argv for a docker image name
-	if len(os.Args) > 1 {
-		if os.Args[1] == "serve" {
-			mux, err := api.CreateServer(&config)
-			if err != nil {
-				log.Fatal(err)
-			}
-			server := api.EnableCORS(mux, "*")
-			log.Printf("GoRun server listening on port %d\n", config.Port)
-			log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), server))
-		}
-
-		if os.Args[1] == "list" {
-			tools, err := toolImage.ReadAllTools(context.Background(), docker, &config.Cache)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for _, tool := range tools {
-				log.Println(tool)
-			}
-		}
-
-		if os.Args[1] == "cleanup" {
-			err = files.Cleanup(&config)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		if os.Args[1] == "find" {
-			if len(os.Args) < 3 {
-				log.Fatal("missing pattern - use like gorun find \"<pattern>\"")
-			}
-			matches, err := files.Find(os.Args[2], config.GetMountPath(), "all")
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			for _, match := range matches {
-				fmt.Printf("- %v\n", match)
-			}
-		}
-
-		if os.Args[1] == "create-key" {
-			key, err := auth.CreateNewApiKey(context.Background(), config.GetDB(), 0)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			fmt.Println("Created a new API key for GoRun. Store this key, as you can't retrieve it later:")
-			fmt.Println(key)
-			fmt.Println()
-		}
-
-	} else {
+	if len(os.Args) == 1 {
 		log.Println("No command line arguments provided")
+	}
+
+	if os.Args[1] == "serve" {
+		mux, err := api.CreateServer(&config)
+		if err != nil {
+			log.Fatal(err)
+		}
+		server := api.EnableCORS(mux, "*")
+		log.Printf("GoRun server listening on port %d\n", config.Port)
+		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), server))
+	}
+
+	if os.Args[1] == "list" {
+		tools, err := toolImage.ReadAllTools(context.Background(), docker, &config.Cache)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, tool := range tools {
+			log.Println(tool)
+		}
+	}
+
+	if os.Args[1] == "cleanup" {
+		err = files.Cleanup(&config)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if os.Args[1] == "find" {
+		if len(os.Args) < 3 {
+			log.Fatal("missing pattern - use like gorun find \"<pattern>\"")
+		}
+		matches, err := files.Find(os.Args[2], config.GetMountPath(), "all")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, match := range matches {
+			fmt.Printf("- %v\n", match)
+		}
+	}
+
+	if os.Args[1] == "auth" {
+		if len(os.Args) < 3 {
+			log.Fatal("missing command - use like gorun auth create")
+		}
+
+		if os.Args[2] == "credentials" {
+			credentials, err := config.GetAdminCredentials()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if len(os.Args) > 2 && os.Args[2] == "--token" {
+				fmt.Printf("%s\n", credentials.RefreshToken)
+				return
+			}
+			fmt.Println("Admin credentials:")
+			fmt.Printf("Email:      %s\n", credentials.Email)
+			fmt.Printf("User ID:       %s\n", credentials.UserID)
+			fmt.Printf("Refresh token: %s\n", credentials.RefreshToken)
+			fmt.Printf("Expires at:    %s\n", credentials.ExpiresAt)
+			fmt.Printf("Access token  \n\n%s\n", credentials.AccessToken)
+		}
+
+		if os.Args[2] == "create-user" {
+			if len(os.Args) < 6 {
+				log.Fatal("missing arguments - use like gorun auth create-user <email> <password> <is-admin>")
+			}
+
+			_, err := auth.CreateUser(context.Background(), config.GetDB(), os.Args[3], os.Args[4], os.Args[5] == "true", config.Secret)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			log.Println("User created")
+		}
 	}
 }

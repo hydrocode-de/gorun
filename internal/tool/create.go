@@ -27,7 +27,7 @@ type ToolInput struct {
 }
 type inputFile map[string]ToolInput
 
-func CreateToolRun(mountStrategy string, opts CreateRunOptions, c *config.APIConfig, ctx context.Context) (db.Run, error) {
+func CreateToolRun(ctx context.Context, mountStrategy string, opts CreateRunOptions, user_id string, c *config.APIConfig) (db.Run, error) {
 	spec, err := toolImage.ReadToolSpec(ctx, c.GetDockerClient(), opts.Image)
 	if err != nil {
 		return db.Run{}, err
@@ -81,6 +81,7 @@ func CreateToolRun(mountStrategy string, opts CreateRunOptions, c *config.APICon
 		Parameters:  string(parJSON),
 		Data:        string(dataJSON),
 		Mounts:      string(mountJSON),
+		UserID:      user_id,
 	})
 	if err != nil {
 		return db.Run{}, err

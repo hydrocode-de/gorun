@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/hydrocode-de/gorun/config"
+	"github.com/hydrocode-de/gorun/internal/db"
 	"github.com/hydrocode-de/gorun/internal/tool"
 	"github.com/hydrocode-de/gorun/internal/toolSpec"
 )
@@ -25,6 +26,12 @@ type CreateRunPayload struct {
 
 func RunMiddleware(handler func(http.ResponseWriter, *http.Request, tool.Tool, *config.APIConfig), c *config.APIConfig) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user_id := r.Header.Get("X-User-ID")
+		if user_id == "" {
+			RespondWithError(w, http.StatusUnauthorized, "User ID is required")
+			return
+		}
+
 		idPath := r.PathValue("id")
 		if idPath == "" {
 			RespondWithError(w, http.StatusBadRequest, "missing run id")
@@ -35,7 +42,10 @@ func RunMiddleware(handler func(http.ResponseWriter, *http.Request, tool.Tool, *
 			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("the passed run id is not a valid integer: %v", err))
 		}
 
-		run, err := c.GetDB().GetRun(r.Context(), id)
+		run, err := c.GetDB().GetRun(r.Context(), db.GetRunParams{
+			ID:     id,
+			UserID: user_id,
+		})
 		if err != nil {
 			RespondWithError(w, http.StatusNotFound, err.Error())
 			return
@@ -73,6 +83,12 @@ func ListToolSpecs(w http.ResponseWriter, r *http.Request, c *config.APIConfig) 
 }
 
 func CreateRun(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
+	user_id := r.Header.Get("X-User-ID")
+	if user_id == "" {
+		RespondWithError(w, http.StatusUnauthorized, "User ID is required")
+		return
+	}
+
 	var payload CreateRunPayload
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
@@ -87,7 +103,7 @@ func CreateRun(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
 		Parameters: payload.Parameters,
 		Datasets:   payload.DataPaths,
 	}
-	runData, err := tool.CreateToolRun("_random", opts, c, r.Context())
+	runData, err := tool.CreateToolRun(r.Context(), "_random", opts, user_id, c)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 	}

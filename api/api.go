@@ -10,25 +10,19 @@ import (
 	"github.com/hydrocode-de/gorun/internal/frontend"
 )
 
-func HandleRequireApiKey(handler func(http.ResponseWriter, *http.Request) error, c *config.APIConfig) func(http.ResponseWriter, *http.Request) {
+func HandleApiKey(handler func(http.ResponseWriter, *http.Request), c *config.APIConfig) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		apiKey := strings.TrimPrefix(authHeader, "Bearer ")
 
-		if authHeader == "" || apiKey == "" {
-			RespondWithError(w, http.StatusUnauthorized, "missing api key in Authorization header")
-			return
+		if apiKey != "" {
+			userId, err := auth.ValidateJWT(apiKey, c.Secret)
+			if err == nil {
+				r.Header.Set("X-User-ID", userId)
+			}
 		}
 
-		// the validation function is returning an error if the key is invalid
-		// sorry this look maybe a bit confusing compared to other go code
-		err := auth.ValidateApiKey(apiKey, r.Context(), c.GetDB())
-		if err != nil {
-			handler(w, r)
-		} else {
-			RespondWithError(w, http.StatusUnauthorized, err.Error())
-		}
-
+		handler(w, r)
 	}
 }
 
@@ -50,30 +44,33 @@ func CreateServer(c *config.APIConfig) (*http.ServeMux, error) {
 	//mux.Handle("/manager/", http.StripPrefix("/manager/", http.FileServer(http.Dir("manager/build"))))
 	mux.Handle("/manager/", http.StripPrefix("/manager/", http.FileServerFS(frontend.GetManager())))
 
-	mux.HandleFunc("GET /runs", HandleFuncWithConfig(GetAllRuns, c))
-	mux.HandleFunc("POST /runs", HandleFuncWithConfig(CreateRun, c))
-	mux.HandleFunc("GET /runs/{id}", RunMiddleware(GetRunStatus, c))
-	mux.HandleFunc("DELETE /runs/{id}", RunMiddleware(DeleteRun, c))
-	mux.HandleFunc("POST /runs/{id}/start", RunMiddleware(HandleRunStart, c))
-	mux.HandleFunc("GET /runs/{id}/results", RunMiddleware(ListRunResults, c))
-	mux.HandleFunc("GET /runs/{id}/results/{filename}", RunMiddleware(GetResultFile, c))
-	mux.HandleFunc("POST /files", HandleFuncWithConfig(HandleFileUpload, c))
-	mux.HandleFunc("GET /files", HandleFuncWithConfig(FindFile, c))
+	mux.HandleFunc("GET /runs", HandleApiKey(HandleFuncWithConfig(GetAllRuns, c), c))
+	mux.HandleFunc("POST /runs", HandleApiKey(HandleFuncWithConfig(CreateRun, c), c))
+	mux.HandleFunc("GET /runs/{id}", HandleApiKey(RunMiddleware(GetRunStatus, c), c))
+	mux.HandleFunc("DELETE /runs/{id}", HandleApiKey(RunMiddleware(DeleteRun, c), c))
+	mux.HandleFunc("POST /runs/{id}/start", HandleApiKey(RunMiddleware(HandleRunStart, c), c))
+	mux.HandleFunc("GET /runs/{id}/results", HandleApiKey(RunMiddleware(ListRunResults, c), c))
+	mux.HandleFunc("GET /runs/{id}/results/{filename}", HandleApiKey(RunMiddleware(GetResultFile, c), c))
+	mux.HandleFunc("POST /files", HandleApiKey(HandleFuncWithConfig(HandleFileUpload, c), c))
+	mux.HandleFunc("GET /files", HandleApiKey(HandleFuncWithConfig(FindFile, c), c))
 	mux.HandleFunc("GET /specs", HandleFuncWithConfig(ListToolSpecs, c))
 	mux.HandleFunc("GET /specs/{toolname}", HandleFuncWithConfig(GetToolSpec, c))
-
+	mux.HandleFunc("POST /auth/refresh", HandleFuncWithConfig(HandleRefreshToken, c))
+	mux.HandleFunc("POST /auth/login", HandleFuncWithConfig(HandleLogin, c))
 	return mux, nil
 }
 
 func RespondWithError(w http.ResponseWriter, status int, err string) {
+	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(status)
 	w.Write([]byte(err))
 }
 
 func ResondWithJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	err := json.NewEncoder(w).Encode(data)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		w.Write([]byte(`{"error": "Failed to encode response"}`))
 	}
 }

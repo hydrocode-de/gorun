@@ -16,6 +16,7 @@ import (
 )
 
 type APIConfig struct {
+	GorunBasePath string
 	Port          int
 	MaxUploadSize int64
 	dbPath        string
@@ -25,6 +26,7 @@ type APIConfig struct {
 	BaseTempDir   string
 	MaxTempAge    time.Duration
 	Cache         cache.Cache
+	Secret        string
 }
 
 func (c *APIConfig) Validate() error {
@@ -35,6 +37,17 @@ func (c *APIConfig) Validate() error {
 	// check if it is a valid sqlite3 connection string
 	if _, err := os.Stat(c.dbPath); os.IsNotExist(err) {
 		return fmt.Errorf("the database file %s does not exist", c.dbPath)
+	}
+
+	if c.Secret == "" {
+		return fmt.Errorf("the secret is required")
+	}
+
+	// make sure the AdminCredentials do exist
+	if _, err := c.GetAdminCredentials(); err != nil {
+		if _, err := c.CreateAdminCredentials(); err != nil {
+			return fmt.Errorf("failed to create admin credentials: %w", err)
+		}
 	}
 
 	return nil
@@ -54,14 +67,28 @@ func (c *APIConfig) Load(docker *client.Client) error {
 		c.Port = port
 	}
 
+	c.GorunBasePath = os.Getenv("GORUN_PATH")
+	if c.GorunBasePath == "" {
+		c.GorunBasePath = path.Join(os.Getenv("HOME"), "gorun")
+	}
+
+	// Ensure the base directory exists
+	if err := os.MkdirAll(c.GorunBasePath, 0755); err != nil {
+		return fmt.Errorf("failed to create GorunBasePath directory: %w", err)
+	}
+
 	// Get DB connection string - place a new one in the home directory if not set
 	dbURL := os.Getenv("GORUN_DB")
 	if dbURL == "" {
-		p := path.Join(os.Getenv("HOME"), "gorun")
-		os.MkdirAll(p, 0755)
-		c.dbPath = path.Join(p, "gorun.db")
+		c.dbPath = path.Join(c.GorunBasePath, "gorun.db")
 	} else {
 		c.dbPath = dbURL
+	}
+
+	// Ensure the database directory exists
+	dbDir := path.Dir(c.dbPath)
+	if err := os.MkdirAll(dbDir, 0755); err != nil {
+		return fmt.Errorf("failed to create database directory: %w", err)
 	}
 
 	c.docker = docker
@@ -84,6 +111,11 @@ func (c *APIConfig) Load(docker *client.Client) error {
 		c.baseMountPath = path.Join(os.Getenv("HOME"), "gorun", "mounts")
 	}
 
+	// Ensure the mount directory exists
+	if err := os.MkdirAll(c.baseMountPath, 0755); err != nil {
+		return fmt.Errorf("failed to create mount directory: %w", err)
+	}
+
 	// some defaults
 	if c.MaxUploadSize == 0 {
 		c.MaxUploadSize = 1024 * 1024 * 1024 * 2 // 2GB
@@ -92,9 +124,17 @@ func (c *APIConfig) Load(docker *client.Client) error {
 	if c.BaseTempDir == "" {
 		c.BaseTempDir = path.Join(os.TempDir(), "gorun")
 	}
+
+	// Ensure the temp directory exists
+	if err := os.MkdirAll(c.BaseTempDir, 0755); err != nil {
+		return fmt.Errorf("failed to create temp directory: %w", err)
+	}
+
 	if c.MaxTempAge == 0 {
 		c.MaxTempAge = 12 * time.Hour
 	}
+
+	c.Secret = os.Getenv("GORUN_SECRET")
 
 	return nil
 }
