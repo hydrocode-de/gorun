@@ -3,73 +3,106 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'  # Matches semantic version tags
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64  # Windows ARM64 is not commonly supported
+        include:
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          - os: windows
+            arch: amd64
+          - os: windows
+            arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Go
-        uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
-          
+          fetch-depth: 0
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
-      - name: Install dependencies
-        run: |
-          cd manager && npm install
-          
+          cache: 'npm'
+          cache-dependency-path: manager/package-lock.json
+
       - name: Build frontend
-        run: |
-          cd manager && npm run build
-          
+        working-directory: manager
+        run: npm ci && npm run build
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          check-latest: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
       - name: Build binary
         env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
         run: |
-          go build -o gorun-${{ matrix.goos }}-${{ matrix.goarch }} .
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            mv gorun-${{ matrix.goos }}-${{ matrix.goarch }} gorun-${{ matrix.goos }}-${{ matrix.goarch }}.exe
-          fi
-          
-      - name: Upload artifacts
+          go build -o gorun-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }} .
+
+      - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: gorun-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: gorun-${{ matrix.goos }}-${{ matrix.goarch }}*
-          
+          name: gorun-${{ matrix.os }}-${{ matrix.arch }}
+          path: gorun-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+
   release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          
+          pattern: gorun-*
+
+      - name: List artifacts
+        run: find artifacts -type f
+
       - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/gorun-linux-amd64
-            artifacts/gorun-linux-arm64
-            artifacts/gorun-darwin-amd64
-            artifacts/gorun-darwin-arm64
-            artifacts/gorun-windows-amd64.exe
-          generate_release_notes: true
+            artifacts/gorun-darwin-amd64/*
+            artifacts/gorun-darwin-arm64/*
+            artifacts/gorun-linux-amd64/*
+            artifacts/gorun-linux-arm64/*
+            artifacts/gorun-windows-amd64/*
+            artifacts/gorun-windows-arm64/*
+          body_path: RELEASE.md
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
