@@ -108,7 +108,7 @@ func (c *APIConfig) Load(docker *client.Client) error {
 	// setup the base mount path
 	c.baseMountPath = os.Getenv("GORUN_MOUNT_PATH")
 	if c.baseMountPath == "" {
-		c.baseMountPath = path.Join(os.Getenv("HOME"), "gorun", "mounts")
+		c.baseMountPath = path.Join(c.GorunBasePath, "mounts")
 	}
 
 	// Ensure the mount directory exists
