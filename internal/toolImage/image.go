@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
+	"github.com/alexander-lindner/go-cff"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
@@ -29,17 +31,26 @@ func ReadAllTools(ctx context.Context, c *client.Client, cache *cache.Cache) ([]
 		if !ok {
 			spec, err := ReadToolSpec(ctx, c, imgTag)
 			if err != nil {
-				cache.SetImageSpec(imgTag, toolSpec.SpecFile{})
-			} else {
-				cache.SetImageSpec(imgTag, spec)
-				for name, tool := range spec.Tools {
-					slug := fmt.Sprintf("%s::%s", imgTag, name)
-					tool.ID = slug
-					tool.Name = name
-					cache.SetToolSpec(slug, &tool)
-					tools = append(tools, slug)
-				}
+				log.Printf("image %s does not contain a tool-spec", imgTag)
+				continue
 			}
+			citation, citationErr := ReadToolCitation(ctx, c, imgTag)
+			if citationErr != nil {
+				log.Printf("image %s does not contain a CITATION.cff", imgTag)
+			}
+
+			cache.SetImageSpec(imgTag, spec)
+			for name, tool := range spec.Tools {
+				slug := fmt.Sprintf("%s::%s", imgTag, name)
+				tool.ID = slug
+				tool.Name = name
+				if citationErr == nil {
+					tool.Citation = citation
+				}
+				cache.SetToolSpec(slug, &tool)
+				tools = append(tools, slug)
+			}
+
 		} else {
 			for name := range image.Tools {
 				tools = append(tools, name)
@@ -69,6 +80,10 @@ func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache 
 			if err != nil {
 				return toolSpec.ToolSpec{}, err
 			}
+			citation, citationErr := ReadToolCitation(ctx, c, imageName)
+			if citationErr != nil {
+				log.Printf("image %s does not contain a CITATION.cff", imageName)
+			}
 			cache.SetImageSpec(imageName, specFile)
 			for name, tool := range specFile.Tools {
 				cache.SetToolSpec(name, &tool)
@@ -76,6 +91,10 @@ func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache 
 			tool, ok := specFile.Tools[toolName]
 			if !ok {
 				return toolSpec.ToolSpec{}, fmt.Errorf("the tool %s was not found in the image %s", toolName, imageName)
+			}
+			tool.ID = toolSlug
+			if citationErr == nil {
+				tool.Citation = citation
 			}
 			return tool, nil
 		} else {
@@ -137,4 +156,53 @@ func ReadToolSpec(ctx context.Context, c *client.Client, imageName string) (tool
 	}
 
 	return spec, nil
+}
+
+func ReadToolCitation(ctx context.Context, c *client.Client, imageName string) (cff.Cff, error) {
+	cont, err := c.ContainerCreate(ctx, &container.Config{
+		Image:      imageName,
+		Entrypoint: []string{"cat"},
+		Cmd:        []string{"/src/CITATION.cff"},
+	}, &container.HostConfig{}, nil, nil, "")
+	if err != nil {
+		return cff.Cff{}, err
+	}
+	defer c.ContainerRemove(ctx, cont.ID, container.RemoveOptions{})
+
+	if err = c.ContainerStart(ctx, cont.ID, container.StartOptions{}); err != nil {
+		return cff.Cff{}, err
+	}
+
+	statusCh, errCh := c.ContainerWait(ctx, cont.ID, container.WaitConditionNotRunning)
+	select {
+	case err := <-errCh:
+		return cff.Cff{}, err
+	case <-statusCh:
+	}
+
+	logReader, err := c.ContainerLogs(ctx, cont.ID, container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+	})
+	if err != nil {
+		return cff.Cff{}, err
+	}
+	defer logReader.Close()
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	stdcopy.StdCopy(stdout, stderr, logReader)
+
+	if stderr.Len() != 0 {
+		return cff.Cff{}, fmt.Errorf("Error while reading CITATION.cff: %v", stderr.String())
+	}
+	if stdout.Len() == 0 {
+		return cff.Cff{}, fmt.Errorf("No CITATION.cff found in the container %s", imageName)
+	}
+
+	citation, err := cff.Parse(stdout.String())
+	if err != nil {
+		return cff.Cff{}, fmt.Errorf("Error while parsing CITATION.cff: %v", err)
+	}
+	return citation, nil
 }

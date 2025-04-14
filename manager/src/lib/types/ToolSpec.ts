@@ -1,3 +1,4 @@
+import type { CitationFile } from "./CitationFile";
 import type { InputParams } from "./InputParams";
 
 export interface ToolSpec {
@@ -7,6 +8,7 @@ export interface ToolSpec {
     description: string;
     parameters?: Record<string, ParameterSpec>;
     data?: Record<string, DataSpec>;
+    citation?: CitationFile;
 }
 
 export interface ParameterSpec {

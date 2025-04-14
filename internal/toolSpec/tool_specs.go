@@ -3,6 +3,7 @@ package toolSpec
 import (
 	"fmt"
 
+	"github.com/alexander-lindner/go-cff"
 	"gopkg.in/yaml.v3"
 )
 
@@ -26,6 +27,7 @@ type ToolSpec struct {
 	Description string                   `json:"description" yaml:"description"`
 	Parameters  map[string]ParameterSpec `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	Data        map[string]DataSpec      `json:"data,omitempty" yaml:"data,omitempty"`
+	Citation    cff.Cff                  `json:"citation,omitempty" yaml:"-"`
 }
 
 type ParameterSpec struct {
