@@ -6,11 +6,12 @@
     interface ParameterProps {
         parameter: ParameterSpec,
         name: string,
+        value?: string | number | boolean | Date | null | {[key: string]: any} | any[],
         oninput: (value: string | number | boolean | Date | null | {[key: string]: any} | any[]) => void,
     }
-    let {parameter, name, oninput}: ParameterProps = $props()
+    let {parameter, name, value, oninput}: ParameterProps = $props()
 
-    let value: string | number | boolean | Date | null | {[key: string]: any} | any[] = $state(parameter.default ? parameter.default : null);
+//    let value: string | number | boolean | Date | null | {[key: string]: any} | any[] = $state(parameter.default ? parameter.default : null);
     let showDescription = $state(false);
 
 </script>
@@ -49,6 +50,7 @@
             {#if parameter.array}
                 <ArrayInput 
                     {parameter} 
+                    value={value as any}
                     oninput={v => oninput(v)} 
                 />
             {:else if parameter.type === 'string'}

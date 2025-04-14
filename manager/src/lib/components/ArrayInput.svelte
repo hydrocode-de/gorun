@@ -4,11 +4,12 @@
 
     interface ArrayInputProps {
         parameter: ParameterSpec
+        value: InputArray | null
         oninput: (value: InputArray) => void
     }
-    let {parameter, oninput}: ArrayInputProps = $props()
+    let {parameter, value, oninput}: ArrayInputProps = $props()
 
-    let arrayValue: InputArray = $state(parameter.default && typeof parameter.default === 'object' ? parameter.default as InputArray : [])
+    let arrayValue: InputArray = $state(value || (parameter.default && typeof parameter.default === 'object' ? parameter.default as InputArray : []))
     let newItemValue = $state('');
 
     function addItem() {
