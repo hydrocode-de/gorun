@@ -7,6 +7,7 @@
     import { goto } from "$app/navigation";
     import ClInfo from "./CLInfo.svelte";
     import type { ToolSpec } from "$lib/types/ToolSpec";
+    import CitationInfo from "./CitationInfo.svelte";
 
     let { data }: PageProps = $props();
     let spec: ToolSpec = $state(data.spec!);
@@ -16,7 +17,7 @@
     $inspect(parameterValues);
     $inspect(dataValues);
 
-    let currentTab: 'parameters' | 'cli' = $state('parameters');
+    let currentTab: 'parameters' | 'cli' | 'citation' = $state('parameters');
 
     function updateParameterValues(name: string, value: any) {
         parameterValues = {...parameterValues, [name]: value};
@@ -102,6 +103,17 @@
         class:hover:border-gray-300={currentTab !== 'cli'}
     >
         API Access</button>
+    <button
+        class="px-4 pt-2 text-sm font-medium border-b-1 transition-colors duration-200"
+        onclick={() => currentTab = 'citation'}
+        class:border-indigo-500={currentTab === 'citation'}
+        class:text-indigo-600={currentTab === 'citation'}
+        class:border-transparent={currentTab !== 'citation'}
+        class:text-gray-500={currentTab !== 'citation'}
+        class:hover:text-gray-700={currentTab !== 'citation'}
+        class:hover:border-gray-300={currentTab !== 'citation'}
+        disabled={!spec.citation}
+    >Citation</button>
     </div>
 
     {#if currentTab === 'parameters'}
@@ -109,7 +121,7 @@
                 <h2 class="text-lg font-semibold text-gray-900 mb-3">Parameters</h2>
                 {#if spec.parameters}    
                     {#each Object.entries(spec.parameters) as [name, parameter]}
-                    <ParameterInput {parameter} {name} oninput={value => updateParameterValues(name, value)} />
+                    <ParameterInput {parameter} {name} value={parameterValues[name]} oninput={value => updateParameterValues(name, value)} />
                 {/each}
             {:else}
                     <p class="mt-2 text-gray-600">Tool {spec.title} has no parameters defined.</p>
@@ -138,6 +150,8 @@
         </div>
     {:else if currentTab === 'cli'}
         <ClInfo id={spec.id} name={toolName} image={dockerImage} {parameterValues} {dataValues} />
+    {:else if currentTab === 'citation' && spec.citation}
+        <CitationInfo citation={spec.citation} />
     {/if}
 
 </div>
