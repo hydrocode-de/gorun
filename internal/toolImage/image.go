@@ -16,7 +16,13 @@ import (
 	"github.com/hydrocode-de/gorun/internal/toolSpec"
 )
 
-func ReadAllTools(ctx context.Context, c *client.Client, cache *cache.Cache) ([]string, error) {
+func ReadAllTools(ctx context.Context, cache *cache.Cache) ([]string, error) {
+	c, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, err
+	}
+	defer c.Close()
+
 	summary, err := c.ImageList(ctx, image.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -29,12 +35,12 @@ func ReadAllTools(ctx context.Context, c *client.Client, cache *cache.Cache) ([]
 		imgTag := img.RepoTags[0]
 		image, ok := cache.GetImageSpec(imgTag)
 		if !ok {
-			spec, err := ReadToolSpec(ctx, c, imgTag)
+			spec, err := readToolSpec(ctx, c, imgTag)
 			if err != nil {
 				log.Printf("image %s does not contain a tool-spec", imgTag)
 				continue
 			}
-			citation, citationErr := ReadToolCitation(ctx, c, imgTag)
+			citation, citationErr := readToolCitation(ctx, c, imgTag)
 			if citationErr != nil {
 				log.Printf("image %s does not contain a CITATION.cff", imgTag)
 			}
@@ -76,11 +82,11 @@ func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache 
 		toolName := chunks[1]
 		spec, ok := cache.GetImageSpec(imageName)
 		if !ok {
-			specFile, err := ReadToolSpec(ctx, c, imageName)
+			specFile, err := readToolSpec(ctx, c, imageName)
 			if err != nil {
 				return toolSpec.ToolSpec{}, err
 			}
-			citation, citationErr := ReadToolCitation(ctx, c, imageName)
+			citation, citationErr := readToolCitation(ctx, c, imageName)
 			if citationErr != nil {
 				log.Printf("image %s does not contain a CITATION.cff", imageName)
 			}
@@ -109,7 +115,17 @@ func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache 
 	return toolSpec.ToolSpec{}, fmt.Errorf("invalid tool slug: %s", toolSlug)
 }
 
-func ReadToolSpec(ctx context.Context, c *client.Client, imageName string) (toolSpec.SpecFile, error) {
+func ReadToolSpec(ctx context.Context, imageName string) (toolSpec.SpecFile, error) {
+	c, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return toolSpec.SpecFile{}, err
+	}
+	defer c.Close()
+
+	return readToolSpec(ctx, c, imageName)
+}
+
+func readToolSpec(ctx context.Context, c *client.Client, imageName string) (toolSpec.SpecFile, error) {
 	cont, err := c.ContainerCreate(ctx, &container.Config{
 		Image:      imageName,
 		Entrypoint: []string{"cat"},
@@ -141,7 +157,6 @@ func ReadToolSpec(ctx context.Context, c *client.Client, imageName string) (tool
 	stderr := new(bytes.Buffer)
 	stdcopy.StdCopy(stdout, stderr, logReader)
 
-	// check if the sdterr is empty
 	if stderr.Len() != 0 {
 		return toolSpec.SpecFile{}, fmt.Errorf("the container errored while identifying the tool spec: %v", stderr.String())
 	}
@@ -158,7 +173,7 @@ func ReadToolSpec(ctx context.Context, c *client.Client, imageName string) (tool
 	return spec, nil
 }
 
-func ReadToolCitation(ctx context.Context, c *client.Client, imageName string) (cff.Cff, error) {
+func readToolCitation(ctx context.Context, c *client.Client, imageName string) (cff.Cff, error) {
 	cont, err := c.ContainerCreate(ctx, &container.Config{
 		Image:      imageName,
 		Entrypoint: []string{"cat"},
