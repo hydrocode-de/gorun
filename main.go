@@ -63,11 +63,11 @@ func main() {
 		}
 	}()
 
-	go toolImage.ReadAllTools(context.Background(), docker, &config.Cache)
+	go toolImage.ReadAllTools(context.Background(), &config.Cache)
 	go func() {
 		for range ticker.C {
 			log.Println("Checking for new images...")
-			_, err := toolImage.ReadAllTools(context.Background(), docker, &config.Cache)
+			_, err := toolImage.ReadAllTools(context.Background(), &config.Cache)
 			if err != nil {
 				log.Fatalf("Errored while updating tool images: %s", err)
 			}
@@ -91,7 +91,7 @@ func main() {
 	}
 
 	if os.Args[1] == "list" {
-		tools, err := toolImage.ReadAllTools(context.Background(), docker, &config.Cache)
+		tools, err := toolImage.ReadAllTools(context.Background(), &config.Cache)
 		if err != nil {
 			log.Fatal(err)
 		}
