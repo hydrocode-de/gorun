@@ -1,4 +1,4 @@
-# gorun v0.1.0
+# GoRun
 
 A Go HTTP server that provides a simple interface to run tool-spec containers.
 

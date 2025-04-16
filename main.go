@@ -12,12 +12,16 @@ import (
 	"github.com/hydrocode-de/gorun/api"
 	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/auth"
+	"github.com/hydrocode-de/gorun/internal/cli"
 	"github.com/hydrocode-de/gorun/internal/files"
 	"github.com/hydrocode-de/gorun/internal/toolImage"
 	"github.com/joho/godotenv"
 )
 
 func main() {
+	cli.Execute()
+	os.Exit(0)
+
 	godotenv.Load()
 
 	docker, err := client.NewClientWithOpts(client.FromEnv)
