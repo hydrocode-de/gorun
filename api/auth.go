@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/auth"
+	"github.com/hydrocode-de/gorun/internal/db"
+	"github.com/spf13/viper"
 )
 
-func HandleRefreshToken(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
+func HandleRefreshToken(w http.ResponseWriter, r *http.Request) {
 	// the refresh token is sent as a JSON body
 	var refreshToken struct {
 		RefreshToken string `json:"refresh_token"`
@@ -19,7 +20,10 @@ func HandleRefreshToken(w http.ResponseWriter, r *http.Request, c *config.APICon
 		RespondWithError(w, http.StatusBadRequest, "Invalid request body. A refresh token is required.")
 	}
 
-	response, err := auth.NewJWTFromRefreshToken(r.Context(), c.GetDB(), refreshToken.RefreshToken, c.Secret)
+	DB := viper.Get("db").(*db.Queries)
+	secret := viper.GetString("secret")
+
+	response, err := auth.NewJWTFromRefreshToken(r.Context(), DB, refreshToken.RefreshToken, secret)
 	if err != nil {
 		RespondWithError(w, http.StatusUnauthorized, fmt.Sprintf("Invalid refresh token: %v", err))
 	}
@@ -27,7 +31,7 @@ func HandleRefreshToken(w http.ResponseWriter, r *http.Request, c *config.APICon
 	ResondWithJSON(w, http.StatusOK, response)
 }
 
-func HandleLogin(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
+func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	var loginRequest struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -38,7 +42,9 @@ func HandleLogin(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
 		return
 	}
 
-	response, err := auth.LoginUser(r.Context(), c.GetDB(), loginRequest.Email, loginRequest.Password, c.Secret)
+	DB := viper.Get("db").(*db.Queries)
+	secret := viper.GetString("secret")
+	response, err := auth.LoginUser(r.Context(), DB, loginRequest.Email, loginRequest.Password, secret)
 	if err != nil {
 		RespondWithError(w, http.StatusUnauthorized, fmt.Sprintf("Login attempt failed: %v", err))
 		return

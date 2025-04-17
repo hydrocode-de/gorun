@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hydrocode-de/gorun/internal/cache"
+	"github.com/hydrocode-de/gorun/internal/files"
 	"github.com/hydrocode-de/gorun/internal/toolImage"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -22,7 +23,7 @@ var listCmd = &cobra.Command{
 	Short: "List all available tools",
 	Run: func(cmd *cobra.Command, args []string) {
 		cache := viper.Get("cache").(*cache.Cache)
-		tools, err := toolImage.ReadAllTools(cmd.Context(), cache)
+		tools, err := toolImage.ReadAllTools(cmd.Context(), cache, viper.GetBool("verbose"))
 		cobra.CheckErr(err)
 
 		fmt.Printf("Found %d tools:\n", len(tools))
@@ -32,7 +33,22 @@ var listCmd = &cobra.Command{
 	},
 }
 
+var cleanupCmd = &cobra.Command{
+	Use:   "cleanup",
+	Short: "Clean up temporary files",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("Running cleanup...")
+		err := files.Cleanup()
+		cobra.CheckErr(err)
+		fmt.Println("Cleanup completed successfully")
+	},
+}
+
 func init() {
+	listCmd.Flags().BoolVar(&verbose, "verbose", false, "Verbose output")
+	viper.BindPFlag("verbose", listCmd.Flags().Lookup("verbose"))
+
 	toolsCmd.AddCommand(listCmd)
+	toolsCmd.AddCommand(cleanupCmd)
 	rootCmd.AddCommand(toolsCmd)
 }

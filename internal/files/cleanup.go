@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hydrocode-de/gorun/config"
+	"github.com/spf13/viper"
 )
 
 func walkDirCheckTimestamp(path string, d fs.DirEntry, err error, maxAge time.Time) error {
@@ -57,14 +57,17 @@ func walkDirCheckTimestamp(path string, d fs.DirEntry, err error, maxAge time.Ti
 	return nil
 }
 
-func Cleanup(c *config.APIConfig) error {
-	uploadDir := path.Join(c.BaseTempDir, "uploads")
+func Cleanup() error {
+	baseDir := viper.GetString("path")
+	maxAge := viper.GetDuration("max_temp_age")
+
+	uploadDir := path.Join(baseDir, "uploads")
 	err := os.MkdirAll(uploadDir, 0755)
 	if err != nil {
 		return err
 	}
 	err = filepath.WalkDir(uploadDir, func(p string, d fs.DirEntry, e error) error {
-		return walkDirCheckTimestamp(p, d, e, time.Now().Add(-c.MaxTempAge))
+		return walkDirCheckTimestamp(p, d, e, time.Now().Add(maxAge))
 	})
 	if err != nil {
 		return err

@@ -1,16 +1,15 @@
 package api
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/db"
 	"github.com/hydrocode-de/gorun/internal/tool"
+	"github.com/spf13/viper"
 )
 
 type RunsResponse struct {
@@ -19,10 +18,13 @@ type RunsResponse struct {
 	Runs   []tool.Tool `json:"runs"`
 }
 
-func GetAllRuns(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
+func GetAllRuns(w http.ResponseWriter, r *http.Request) {
 	filter := r.URL.Query().Get("status")
+	DB := viper.Get("db").(*db.Queries)
 
 	user_id := r.Header.Get("X-User-ID")
+	log.Printf("user_id: %s", user_id)
+	log.Printf("r.Header: %v", r.Header)
 	if user_id == "" {
 		RespondWithError(w, http.StatusUnauthorized, "User ID is required")
 		return
@@ -32,23 +34,23 @@ func GetAllRuns(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
 	var err error
 	switch filter {
 	case "pending":
-		runs, err = c.GetDB().GetIdleRuns(r.Context(), db.GetIdleRunsParams{
+		runs, err = DB.GetIdleRuns(r.Context(), db.GetIdleRunsParams{
 			UserID: user_id,
 		})
 	case "running":
-		runs, err = c.GetDB().GetRunning(r.Context(), db.GetRunningParams{
+		runs, err = DB.GetRunning(r.Context(), db.GetRunningParams{
 			UserID: user_id,
 		})
 	case "finished":
-		runs, err = c.GetDB().GetFinishedRuns(r.Context(), db.GetFinishedRunsParams{
+		runs, err = DB.GetFinishedRuns(r.Context(), db.GetFinishedRunsParams{
 			UserID: user_id,
 		})
 	case "errored":
-		runs, err = c.GetDB().GetErroredRuns(r.Context(), db.GetErroredRunsParams{
+		runs, err = DB.GetErroredRuns(r.Context(), db.GetErroredRunsParams{
 			UserID: user_id,
 		})
 	default:
-		runs, err = c.GetDB().GetAllRuns(r.Context(), db.GetAllRunsParams{
+		runs, err = DB.GetAllRuns(r.Context(), db.GetAllRunsParams{
 			UserID: user_id,
 		})
 	}
@@ -73,12 +75,13 @@ func GetAllRuns(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
 	})
 }
 
-func DeleteRun(w http.ResponseWriter, r *http.Request, tool tool.Tool, c *config.APIConfig) {
+func DeleteRun(w http.ResponseWriter, r *http.Request, tool tool.Tool) {
 	user_id := r.Header.Get("X-User-ID")
 	if user_id == "" {
 		RespondWithError(w, http.StatusUnauthorized, "User ID is required")
 		return
 	}
+	DB := viper.Get("db").(*db.Queries)
 
 	// the tool may have a saved mount point, so we delete it first
 	_, ok := tool.Mounts["/in"]
@@ -91,7 +94,7 @@ func DeleteRun(w http.ResponseWriter, r *http.Request, tool tool.Tool, c *config
 
 	}
 
-	err := c.GetDB().DeleteRun(r.Context(), db.DeleteRunParams{
+	err := DB.DeleteRun(r.Context(), db.DeleteRunParams{
 		ID:     tool.ID,
 		UserID: user_id,
 	})
@@ -104,29 +107,31 @@ func DeleteRun(w http.ResponseWriter, r *http.Request, tool tool.Tool, c *config
 
 }
 
-func GetRunStatus(w http.ResponseWriter, r *http.Request, run tool.Tool, c *config.APIConfig) {
+func GetRunStatus(w http.ResponseWriter, r *http.Request, run tool.Tool) {
 	ResondWithJSON(w, http.StatusOK, run)
 }
 
-func HandleRunStart(w http.ResponseWriter, r *http.Request, run tool.Tool, c *config.APIConfig) {
+func HandleRunStart(w http.ResponseWriter, r *http.Request, run tool.Tool) {
 	user_id := r.Header.Get("X-User-ID")
 	if user_id == "" {
 		RespondWithError(w, http.StatusUnauthorized, "User ID is required")
 		return
 	}
+	DB := viper.Get("db").(*db.Queries)
 
 	opt := tool.RunToolOptions{
-		DB:   (*c).GetDB(),
+		DB:   DB,
 		Tool: run,
 		Env:  []string{},
 		// Cmd:  []string{},
+		UserId: user_id,
 	}
 
-	go tool.RunTool(context.Background(), (*c).GetDockerClient(), opt, user_id)
+	go tool.RunTool(r.Context(), opt)
 
 	// wait a few miliseconds to make sure the container is started
 	time.Sleep(time.Millisecond * 100)
-	started, err := (*c).GetDB().GetRun(r.Context(), db.GetRunParams{
+	started, err := DB.GetRun(r.Context(), db.GetRunParams{
 		ID:     run.ID,
 		UserID: user_id,
 	})

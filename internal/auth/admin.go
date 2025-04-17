@@ -1,4 +1,4 @@
-package config
+package auth
 
 import (
 	"context"
@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hydrocode-de/gorun/internal/auth"
+	"github.com/hydrocode-de/gorun/internal/db"
 	"github.com/hydrocode-de/gorun/internal/helper"
+	"github.com/spf13/viper"
 )
 
 type AdminCredentials struct {
@@ -20,22 +21,25 @@ type AdminCredentials struct {
 	ExpiresAt    time.Time `json:"expiresAt"`
 }
 
-func createNewAdminUser(c *APIConfig) (auth.UserLoginResponse, error) {
+func createNewAdminUser(ctx context.Context) (UserLoginResponse, error) {
+	DB := viper.Get("db").(*db.Queries)
+	JWTSecret := viper.GetString("secret")
+
 	// Generate a random password for the admin user
 	password := helper.GetRandomString(16)
 
 	// Create the admin user
-	response, err := auth.CreateUser(
-		context.Background(),
-		c.GetDB(),
+	response, err := CreateUser(
+		ctx,
+		DB,
 		"admin@gorun.local",
 		password,
 		true, // isAdmin
-		c.Secret,
+		JWTSecret,
 	)
 
 	if err != nil {
-		return auth.UserLoginResponse{}, err
+		return UserLoginResponse{}, err
 	}
 
 	// Print the admin password to the console
@@ -45,14 +49,17 @@ func createNewAdminUser(c *APIConfig) (auth.UserLoginResponse, error) {
 	return response, nil
 }
 
-func (c *APIConfig) CreateAdminCredentials() (*AdminCredentials, error) {
+func CreateAdminCredentials(ctx context.Context) (*AdminCredentials, error) {
+	basePath := viper.GetString("base_path")
+	DB := viper.Get("db").(*db.Queries)
+
 	// Check if admin credentials file exists
-	credentialsPath := filepath.Join(c.GorunBasePath, "admin_credentials.json")
+	credentialsPath := filepath.Join(basePath, "admin_credentials.json")
 
 	// Try to load existing credentials
 	if _, err := os.Stat(credentialsPath); err == nil {
 		// File exists, try to load it
-		credentials, err := c.GetAdminCredentials()
+		credentials, err := GetAdminCredentials(ctx)
 		if err == nil && credentials != nil {
 			// Check if the credentials are still valid
 			if time.Now().Before(credentials.ExpiresAt) {
@@ -62,13 +69,12 @@ func (c *APIConfig) CreateAdminCredentials() (*AdminCredentials, error) {
 	}
 
 	// Check if admin user exists in the database
-	ctx := context.Background()
-	var adminResponse auth.UserLoginResponse
-	_, err := c.GetDB().GetUserByEmail(ctx, "admin@gorun.local")
+	var adminResponse UserLoginResponse
+	_, err := DB.GetUserByEmail(ctx, "admin@gorun.local")
 
 	if err != nil {
 		// Admin user doesn't exist, create it
-		adminResponse, err = createNewAdminUser(c)
+		adminResponse, err = createNewAdminUser(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create admin user: %w", err)
 		}
@@ -97,8 +103,9 @@ func (c *APIConfig) CreateAdminCredentials() (*AdminCredentials, error) {
 	return credentials, nil
 }
 
-func (c *APIConfig) GetAdminCredentials() (*AdminCredentials, error) {
-	credentialsPath := filepath.Join(c.GorunBasePath, "admin_credentials.json")
+func GetAdminCredentials(ctx context.Context) (*AdminCredentials, error) {
+	basePath := viper.GetString("path")
+	credentialsPath := filepath.Join(basePath, "admin_credentials.json")
 
 	// Check if file exists
 	if _, err := os.Stat(credentialsPath); os.IsNotExist(err) {
@@ -120,9 +127,11 @@ func (c *APIConfig) GetAdminCredentials() (*AdminCredentials, error) {
 
 	// Check if credentials are expired
 	if time.Now().After(credentials.ExpiresAt) {
+		DB := viper.Get("db").(*db.Queries)
+		JWTSecret := viper.GetString("secret")
+
 		// Try to refresh the token
-		ctx := context.Background()
-		response, err := auth.NewJWTFromRefreshToken(ctx, c.GetDB(), credentials.RefreshToken, c.Secret)
+		response, err := NewJWTFromRefreshToken(ctx, DB, credentials.RefreshToken, JWTSecret)
 		if err != nil {
 			return nil, fmt.Errorf("admin credentials expired and refresh failed: %w", err)
 		}
