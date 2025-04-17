@@ -10,9 +10,9 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/hydrocode-de/gorun/api"
+	"github.com/hydrocode-de/gorun/cli"
 	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/auth"
-	"github.com/hydrocode-de/gorun/internal/cli"
 	"github.com/hydrocode-de/gorun/internal/files"
 	"github.com/hydrocode-de/gorun/internal/toolImage"
 	"github.com/joho/godotenv"
