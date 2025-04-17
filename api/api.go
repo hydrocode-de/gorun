@@ -5,18 +5,38 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/auth"
 	"github.com/hydrocode-de/gorun/internal/frontend"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
-func HandleApiKey(handler func(http.ResponseWriter, *http.Request), c *config.APIConfig) func(http.ResponseWriter, *http.Request) {
+var logger = logrus.New()
+
+func HandleApiKey(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		noAuth := viper.GetBool("no_auth")
+
+		if noAuth {
+			logger.Printf("no_auth is enabled, getting admin credentials")
+			credentials, err := auth.GetAdminCredentials(r.Context())
+			if err != nil {
+				logger.Printf("failed to get admin credentials: %v", err)
+				RespondWithError(w, http.StatusInternalServerError, "Failed to get admin credentials")
+				return
+			}
+			logger.Printf("setting admin user ID: %s", credentials.UserID)
+			r.Header.Set("X-User-ID", credentials.UserID)
+			handler(w, r)
+			return
+		}
+
 		authHeader := r.Header.Get("Authorization")
 		apiKey := strings.TrimPrefix(authHeader, "Bearer ")
+		secret := viper.GetString("secret")
 
 		if apiKey != "" {
-			userId, err := auth.ValidateJWT(apiKey, c.Secret)
+			userId, err := auth.ValidateJWT(apiKey, secret)
 			if err == nil {
 				r.Header.Set("X-User-ID", userId)
 			}
@@ -26,13 +46,7 @@ func HandleApiKey(handler func(http.ResponseWriter, *http.Request), c *config.AP
 	}
 }
 
-func HandleFuncWithConfig(handler func(http.ResponseWriter, *http.Request, *config.APIConfig), c *config.APIConfig) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		handler(w, r, c)
-	}
-}
-
-func CreateServer(c *config.APIConfig) (*http.ServeMux, error) {
+func CreateServer() (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -44,19 +58,19 @@ func CreateServer(c *config.APIConfig) (*http.ServeMux, error) {
 	//mux.Handle("/manager/", http.StripPrefix("/manager/", http.FileServer(http.Dir("manager/build"))))
 	mux.Handle("/manager/", http.StripPrefix("/manager/", http.FileServerFS(frontend.GetManager())))
 
-	mux.HandleFunc("GET /runs", HandleApiKey(HandleFuncWithConfig(GetAllRuns, c), c))
-	mux.HandleFunc("POST /runs", HandleApiKey(HandleFuncWithConfig(CreateRun, c), c))
-	mux.HandleFunc("GET /runs/{id}", HandleApiKey(RunMiddleware(GetRunStatus, c), c))
-	mux.HandleFunc("DELETE /runs/{id}", HandleApiKey(RunMiddleware(DeleteRun, c), c))
-	mux.HandleFunc("POST /runs/{id}/start", HandleApiKey(RunMiddleware(HandleRunStart, c), c))
-	mux.HandleFunc("GET /runs/{id}/results", HandleApiKey(RunMiddleware(ListRunResults, c), c))
-	mux.HandleFunc("GET /runs/{id}/results/{filename}", HandleApiKey(RunMiddleware(GetResultFile, c), c))
-	mux.HandleFunc("POST /files", HandleApiKey(HandleFuncWithConfig(HandleFileUpload, c), c))
-	mux.HandleFunc("GET /files", HandleApiKey(HandleFuncWithConfig(FindFile, c), c))
-	mux.HandleFunc("GET /specs", HandleFuncWithConfig(ListToolSpecs, c))
-	mux.HandleFunc("GET /specs/{toolname}", HandleFuncWithConfig(GetToolSpec, c))
-	mux.HandleFunc("POST /auth/refresh", HandleFuncWithConfig(HandleRefreshToken, c))
-	mux.HandleFunc("POST /auth/login", HandleFuncWithConfig(HandleLogin, c))
+	mux.HandleFunc("GET /runs", HandleApiKey(GetAllRuns))
+	mux.HandleFunc("POST /runs", HandleApiKey(CreateRun))
+	mux.HandleFunc("GET /runs/{id}", HandleApiKey(RunMiddleware(GetRunStatus)))
+	mux.HandleFunc("DELETE /runs/{id}", HandleApiKey(RunMiddleware(DeleteRun)))
+	mux.HandleFunc("POST /runs/{id}/start", HandleApiKey(RunMiddleware(HandleRunStart)))
+	mux.HandleFunc("GET /runs/{id}/results", HandleApiKey(RunMiddleware(ListRunResults)))
+	mux.HandleFunc("GET /runs/{id}/results/{filename}", HandleApiKey(RunMiddleware(GetResultFile)))
+	mux.HandleFunc("POST /files", HandleApiKey(HandleFileUpload))
+	mux.HandleFunc("GET /files", HandleApiKey(FindFile))
+	mux.HandleFunc("GET /specs", ListToolSpecs)
+	mux.HandleFunc("GET /specs/{toolname}", GetToolSpec)
+	mux.HandleFunc("POST /auth/refresh", HandleRefreshToken)
+	mux.HandleFunc("POST /auth/login", HandleLogin)
 	return mux, nil
 }
 
