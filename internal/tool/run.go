@@ -17,20 +17,21 @@ import (
 )
 
 type RunToolOptions struct {
-	DB   *db.Queries
-	Tool Tool
-	Env  []string
-	Cmd  []string
+	DB     *db.Queries
+	Tool   Tool
+	Env    []string
+	Cmd    []string
+	UserId string
 }
 
-func RunTool(ctx context.Context, c *client.Client, opt RunToolOptions, user_id string) error {
+func RunTool(ctx context.Context, opt RunToolOptions) error {
 	// create a function to update the database
 	updateDB := func(status string, origError error) {
 		switch status {
 		case "started":
 			_, err := opt.DB.StartRun(ctx, db.StartRunParams{
 				ID:     opt.Tool.ID,
-				UserID: user_id,
+				UserID: opt.UserId,
 			})
 			if err != nil {
 				log.Fatal(err)
@@ -54,6 +55,11 @@ func RunTool(ctx context.Context, c *client.Client, opt RunToolOptions, user_id 
 		}
 	}
 
+	c, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return err
+	}
+	defer c.Close()
 	tool := &opt.Tool
 	mounts := make([]mount.Mount, 0, len(tool.Mounts))
 	for containerPath, hostPath := range tool.Mounts {

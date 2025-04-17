@@ -16,7 +16,7 @@ import (
 	"github.com/hydrocode-de/gorun/internal/toolSpec"
 )
 
-func ReadAllTools(ctx context.Context, cache *cache.Cache) ([]string, error) {
+func ReadAllTools(ctx context.Context, cache *cache.Cache, verbose bool) ([]string, error) {
 	c, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
@@ -37,11 +37,13 @@ func ReadAllTools(ctx context.Context, cache *cache.Cache) ([]string, error) {
 		if !ok {
 			spec, err := readToolSpec(ctx, c, imgTag)
 			if err != nil {
-				log.Printf("image %s does not contain a tool-spec", imgTag)
+				if verbose {
+					log.Printf("image %s does not contain a tool-spec", imgTag)
+				}
 				continue
 			}
 			citation, citationErr := readToolCitation(ctx, c, imgTag)
-			if citationErr != nil {
+			if citationErr != nil && verbose {
 				log.Printf("image %s does not contain a CITATION.cff", imgTag)
 			}
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/files"
 	"github.com/hydrocode-de/gorun/internal/tool"
 )
@@ -14,7 +13,7 @@ type ListRunResultsResponse struct {
 	Files []files.ResultFile `json:"files"`
 }
 
-func ListRunResults(w http.ResponseWriter, r *http.Request, tool tool.Tool, c *config.APIConfig) {
+func ListRunResults(w http.ResponseWriter, r *http.Request, tool tool.Tool) {
 	results, err := tool.ListResults()
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -26,7 +25,7 @@ func ListRunResults(w http.ResponseWriter, r *http.Request, tool tool.Tool, c *c
 	})
 }
 
-func GetResultFile(w http.ResponseWriter, r *http.Request, tool tool.Tool, c *config.APIConfig) {
+func GetResultFile(w http.ResponseWriter, r *http.Request, tool tool.Tool) {
 	//filename := r.URL.Query().Get("filename")
 	filename := r.PathValue("filename")
 

@@ -8,10 +8,11 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/db"
+	"github.com/hydrocode-de/gorun/internal/files"
 	"github.com/hydrocode-de/gorun/internal/helper"
 	"github.com/hydrocode-de/gorun/internal/toolImage"
+	"github.com/spf13/viper"
 )
 
 type CreateRunOptions struct {
@@ -27,7 +28,10 @@ type ToolInput struct {
 }
 type inputFile map[string]ToolInput
 
-func CreateToolRun(ctx context.Context, mountStrategy string, opts CreateRunOptions, user_id string, c *config.APIConfig) (db.Run, error) {
+func CreateToolRun(ctx context.Context, mountStrategy string, opts CreateRunOptions, user_id string) (db.Run, error) {
+	DB := viper.Get("db").(*db.Queries)
+	mountPath := viper.GetString("mount_path")
+
 	spec, err := toolImage.ReadToolSpec(ctx, opts.Image)
 	if err != nil {
 		return db.Run{}, err
@@ -37,7 +41,7 @@ func CreateToolRun(ctx context.Context, mountStrategy string, opts CreateRunOpti
 		return db.Run{}, err
 	}
 
-	mounts := c.CreateNewMountPaths(mountStrategy)
+	mounts := files.CreateNewMountPaths(mountPath, mountStrategy)
 	datasets := make(map[string]string)
 
 	for dataName, dataPath := range opts.Datasets {
@@ -73,7 +77,7 @@ func CreateToolRun(ctx context.Context, mountStrategy string, opts CreateRunOpti
 	}
 
 	// create the database entry
-	runData, err := c.GetDB().CreateRun(ctx, db.CreateRunParams{
+	runData, err := DB.CreateRun(ctx, db.CreateRunParams{
 		Name:        opts.Name,
 		Title:       toolSpec.Title,
 		Description: toolSpec.Description,

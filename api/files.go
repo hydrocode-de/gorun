@@ -8,8 +8,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/hydrocode-de/gorun/config"
 	"github.com/hydrocode-de/gorun/internal/files"
+	"github.com/spf13/viper"
 )
 
 type FindFilesResponse struct {
@@ -18,8 +18,11 @@ type FindFilesResponse struct {
 }
 
 // This function copies uploaded files into a temporary directory and returns the supplied file name and the path in a mapping
-func HandleFileUpload(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
-	if err := r.ParseMultipartForm(c.MaxUploadSize); err != nil {
+func HandleFileUpload(w http.ResponseWriter, r *http.Request) {
+	maxUploadSize := viper.GetInt("max_upload_size")
+	tempPath := viper.GetString("temp_path")
+
+	if err := r.ParseMultipartForm(int64(maxUploadSize)); err != nil {
 		RespondWithError(w, 413, fmt.Sprintf("error parsing multipart form: %s", err))
 	}
 
@@ -29,7 +32,7 @@ func HandleFileUpload(w http.ResponseWriter, r *http.Request, c *config.APIConfi
 	}
 	defer file.Close()
 
-	tempBaseDir := path.Join(c.BaseTempDir, "uploads")
+	tempBaseDir := path.Join(tempPath, "uploads")
 	err = os.MkdirAll(tempBaseDir, 0755)
 	if err != nil {
 		RespondWithError(w, 500, fmt.Sprintf("error creating gorun temporary directory base: %s", err))
@@ -57,7 +60,7 @@ func HandleFileUpload(w http.ResponseWriter, r *http.Request, c *config.APIConfi
 	})
 }
 
-func FindFile(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
+func FindFile(w http.ResponseWriter, r *http.Request) {
 	pattern := r.URL.Query().Get("pattern")
 	if pattern == "" {
 		RespondWithError(w, http.StatusBadRequest, "missing pattern, you need to provide a 'pattern' query parameter")
@@ -73,7 +76,8 @@ func FindFile(w http.ResponseWriter, r *http.Request, c *config.APIConfig) {
 		pattern += "*.*"
 	}
 
-	matches, err := files.Find(pattern, c.GetMountPath(), files.Target(target))
+	mountPath := viper.GetString("mount_path")
+	matches, err := files.Find(pattern, mountPath, files.Target(target))
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
