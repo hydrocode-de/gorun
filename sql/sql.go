@@ -5,6 +5,7 @@ import (
 	"embed"
 
 	"github.com/pressly/goose/v3"
+	"github.com/spf13/viper"
 	_ "modernc.org/sqlite"
 )
 
@@ -21,6 +22,11 @@ func CreateDB(dbPath string) (*sql.DB, error) {
 
 	if err := goose.SetDialect("sqlite"); err != nil {
 		return nil, err
+	}
+
+	// Configure goose logger based on debug flag
+	if !viper.GetBool("debug") {
+		goose.SetLogger(goose.NopLogger())
 	}
 
 	if err := goose.Up(drv, "schema"); err != nil {
