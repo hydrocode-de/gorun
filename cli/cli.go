@@ -1,14 +1,15 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
 	"time"
 
+	"github.com/hydrocode-de/gorun/internal/auth"
 	"github.com/hydrocode-de/gorun/internal/cache"
 	"github.com/hydrocode-de/gorun/internal/db"
-	"github.com/hydrocode-de/gorun/internal/helper"
 	"github.com/hydrocode-de/gorun/sql"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
@@ -24,6 +25,7 @@ const banner = `
   \_____|\___/|_|  \_\__,_|_| |_| 
 `
 
+var debug bool
 var rootCmd = &cobra.Command{
 	Use:   "gorun",
 	Short: "GoRun operates tool-spec compliant research tools",
@@ -35,7 +37,7 @@ You ran gorun without a command. Please refer to the section below to learn
 about all available commands.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
-		fmt.Println(viper.AllKeys())
+		//fmt.Println(viper.AllKeys())
 		os.Exit(0)
 	},
 }
@@ -50,6 +52,10 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initApplicationConfig)
 
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enable debug output")
+
+	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+
 }
 
 func initApplicationConfig() {
@@ -60,13 +66,16 @@ func initApplicationConfig() {
 	viper.AutomaticEnv()
 
 	viper.SetDefault("port", 8080)
+	viper.SetDefault("host", "127.0.0.1")
+	viper.SetDefault("no_auth", false)
+	viper.SetDefault("debug", false)
 	viper.SetDefault("path", path.Join(os.Getenv("HOME"), "gorun"))
 	viper.SetDefault("db_path", path.Join(viper.GetString("path"), "gorun.db"))
 	viper.SetDefault("mount_path", path.Join(viper.GetString("path"), "mounts"))
-	viper.SetDefault("temp_dir", path.Join(os.TempDir(), "gorun"))
+	viper.SetDefault("temp_path", path.Join(os.TempDir(), "gorun"))
 	viper.SetDefault("max_upload_size", 1024*1024*1024*2) // 2GB
 	viper.SetDefault("max_temp_age", 12*time.Hour)
-	viper.SetDefault("secret", helper.GetRandomString(32))
+	viper.SetDefault("secret", "")
 
 	c := &cache.Cache{}
 	c.Reset()
@@ -91,7 +100,7 @@ func initApplicationConfig() {
 	}
 
 	// Ensure the temp directory exists
-	err = os.MkdirAll(viper.GetString("temp_dir"), 0755)
+	err = os.MkdirAll(viper.GetString("temp_path"), 0755)
 	if err != nil {
 		cobra.CheckErr(fmt.Errorf("failed to create temp directory: %w", err))
 	}
@@ -103,4 +112,49 @@ func initApplicationConfig() {
 	}
 	dbQueries := db.New(drv)
 	viper.Set("db", dbQueries)
+
+	// validate the config
+	cobra.CheckErr(validateConfig())
+
+	// Print debug info if enabled
+	printViperState()
+}
+
+func validateConfig() error {
+	if viper.GetInt("port") == 0 {
+		return fmt.Errorf("port is required")
+	}
+
+	// check if it is a valid sqlite3 connection string
+	dbPath := viper.GetString("db_path")
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		return fmt.Errorf("the database file %s does not exist", dbPath)
+	}
+
+	if viper.GetString("secret") == "" {
+		return fmt.Errorf("the secret is required")
+	}
+
+	//make sure the AdminCredentials do exist
+	ctx := context.Background()
+	if _, err := auth.GetAdminCredentials(ctx); err != nil {
+		if _, err := auth.CreateAdminCredentials(ctx); err != nil {
+			return fmt.Errorf("failed to create admin credentials: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func printViperState() {
+	if !viper.GetBool("debug") {
+		return
+	}
+
+	fmt.Println("\nViper Configuration State:")
+	fmt.Println("-------------------------")
+	for _, key := range viper.AllKeys() {
+		fmt.Printf("%s: %v\n", key, viper.Get(key))
+	}
+	fmt.Println("-------------------------")
 }
