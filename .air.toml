@@ -2,7 +2,7 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-    cmd = "cd manager && npm run build && cd .. && go build -o ./tmp/main ."
+    cmd = "cd manager && npm run build && cd .. && go build -ldflags \"-X github.com/hydrocode-de/gorun/version.Commit=$(git rev-parse HEAD) -X github.com/hydrocode-de/gorun/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)\" -o ./tmp/main ."
     bin = "./tmp/main serve"
     delay = 600
     exclude_dir = ["assets", "temp", "vendor", "manager/node_modules", "internal/frontend/manager", ".svelte-kit"]
