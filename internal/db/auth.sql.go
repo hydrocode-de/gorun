@@ -41,43 +41,6 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 	return i, err
 }
 
-const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, email, password_hash, is_admin)
-VALUES (
-    ?1,
-    ?2,
-    ?3,
-    ?4
-)
-RETURNING id, email, password_hash, is_admin, created_at, last_login
-`
-
-type CreateUserParams struct {
-	ID           string `json:"id"`
-	Email        string `json:"email"`
-	PasswordHash string `json:"passwordHash"`
-	IsAdmin      bool   `json:"isAdmin"`
-}
-
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser,
-		arg.ID,
-		arg.Email,
-		arg.PasswordHash,
-		arg.IsAdmin,
-	)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.PasswordHash,
-		&i.IsAdmin,
-		&i.CreatedAt,
-		&i.LastLogin,
-	)
-	return i, err
-}
-
 const getRefreshTokenUser = `-- name: GetRefreshTokenUser :one
 SELECT u.id, u.email, u.password_hash, u.is_admin, u.created_at, u.last_login FROM users u
 JOIN refresh_tokens rt ON rt.user_id = u.id
@@ -88,44 +51,6 @@ AND rt.is_revoked = FALSE
 
 func (q *Queries) GetRefreshTokenUser(ctx context.Context, token string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getRefreshTokenUser, token)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.PasswordHash,
-		&i.IsAdmin,
-		&i.CreatedAt,
-		&i.LastLogin,
-	)
-	return i, err
-}
-
-const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, is_admin, created_at, last_login FROM users
-WHERE email = ?1
-`
-
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.PasswordHash,
-		&i.IsAdmin,
-		&i.CreatedAt,
-		&i.LastLogin,
-	)
-	return i, err
-}
-
-const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, is_admin, created_at, last_login FROM users
-WHERE id = ?1
-`
-
-func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
 		&i.ID,

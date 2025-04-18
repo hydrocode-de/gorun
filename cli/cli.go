@@ -55,6 +55,7 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enable debug output")
 	rootCmd.PersistentFlags().String("path", path.Join(os.Getenv("HOME"), ".gorun"), "the path to use as the gorun base directory")
+	rootCmd.PersistentFlags().String("db_path", path.Join(os.Getenv("HOME"), ".gorun", "gorun.db"), "the path to use as the database file")
 
 	rootCmd.PersistentFlags().BoolP("version", "v", false, "print the version number of gorun")
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
@@ -66,6 +67,7 @@ func init() {
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("path", rootCmd.PersistentFlags().Lookup("path"))
+	viper.BindPFlag("db_path", rootCmd.PersistentFlags().Lookup("db_path"))
 }
 
 func initApplicationConfig() {

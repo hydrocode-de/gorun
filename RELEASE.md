@@ -14,7 +14,12 @@ A Go HTTP server that provides a simple interface to run tool-spec containers.
    ```bash
    chmod +x gorun
    ```
-3. Run the server:
+3. For macOS users: Remove the quarantine attribute (required until we add proper code signing):
+   ```bash
+   xattr -d com.apple.quarantine gorun-darwin-arm64  # For Apple Silicon
+   xattr -d com.apple.quarantine gorun-darwin-amd64  # For Intel Macs
+   ```
+4. Run the server:
    ```bash
    ./gorun serve
    ```

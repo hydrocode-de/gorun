@@ -1,22 +1,3 @@
--- name: CreateUser :one
-INSERT INTO users (id, email, password_hash, is_admin)
-VALUES (
-    @id,
-    @email,
-    @password_hash,
-    @is_admin
-)
-RETURNING *;
-
--- name: GetUserByEmail :one
-SELECT * FROM users
-WHERE email = @email;
-
--- name: GetUserByID :one
-SELECT * FROM users
-WHERE id = @id;
-
-
 -- name: CreateRefreshToken :one
 INSERT INTO refresh_tokens (user_id, token, created_at, expires_at)
 VALUES (

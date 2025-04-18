@@ -48,6 +48,14 @@ A Go HTTP server that provides a simple interface to run tool-spec containers. I
      gorun
    ```
 
+### Note for macOS Users
+The macOS binaries are currently unsigned. To run the binary on macOS, you need to remove the quarantine attribute:
+```bash
+xattr -d com.apple.quarantine gorun-darwin-arm64  # For Apple Silicon
+xattr -d com.apple.quarantine gorun-darwin-amd64  # For Intel Macs
+```
+We plan to add proper code signing in a future release.
+
 ### Environment Variables
 
 - `GORUN_PORT` (Optional, default: 8080)
