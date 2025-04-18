@@ -11,6 +11,7 @@ import (
 	"github.com/hydrocode-de/gorun/internal/cache"
 	"github.com/hydrocode-de/gorun/internal/db"
 	"github.com/hydrocode-de/gorun/sql"
+	"github.com/hydrocode-de/gorun/version"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -53,9 +54,18 @@ func init() {
 	cobra.OnInitialize(initApplicationConfig)
 
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enable debug output")
+	rootCmd.PersistentFlags().String("path", path.Join(os.Getenv("HOME"), ".gorun"), "the path to use as the gorun base directory")
+
+	rootCmd.PersistentFlags().BoolP("version", "v", false, "print the version number of gorun")
+	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		if v, _ := cmd.Flags().GetBool("version"); v {
+			fmt.Println(version.Version)
+			os.Exit(0)
+		}
+	}
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
-
+	viper.BindPFlag("path", rootCmd.PersistentFlags().Lookup("path"))
 }
 
 func initApplicationConfig() {
