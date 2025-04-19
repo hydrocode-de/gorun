@@ -40,7 +40,7 @@ var userCmd = &cobra.Command{
 		}
 
 		if len(args) == 0 {
-			fmt.Println("No user provided. You need to provide a user id or email.\n")
+			fmt.Println("No user provided. You need to provide a user id or email.")
 			cmd.Help()
 			return
 		}

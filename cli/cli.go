@@ -38,7 +38,6 @@ You ran gorun without a command. Please refer to the section below to learn
 about all available commands.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
-		//fmt.Println(viper.AllKeys())
 		os.Exit(0)
 	},
 }
