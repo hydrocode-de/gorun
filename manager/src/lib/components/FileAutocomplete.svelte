@@ -26,7 +26,11 @@ import { config } from "$lib/state.svelte";
     async function query() {
         if (pattern.length !== 0 && !loading) {
             loading = true;
-            const res = await fetch(`${config.apiServer}/files?pattern=${q}&target=both`);
+            const res = await fetch(`${config.apiServer}/files?pattern=${q}&target=both`, {
+                headers: {
+                    'X-User-ID': config.auth.user.id
+                }
+            });
             const data = await res.json();
 
             // sort by last modified

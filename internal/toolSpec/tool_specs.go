@@ -39,6 +39,7 @@ type ParameterSpec struct {
 	Values      []string `json:"values,omitempty" yaml:"values,omitempty"`
 	Min         float64  `json:"min,omitempty" yaml:"min,omitempty"`
 	Max         float64  `json:"max,omitempty" yaml:"max,omitempty"`
+	Optional    bool     `json:"optional,omitempty" yaml:"optional,omitempty"`
 }
 
 type DataSpec struct {

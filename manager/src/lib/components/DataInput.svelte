@@ -55,6 +55,9 @@
         formData.append('file', file)
         fetch(`${config.apiServer}/files`, {
             method: 'POST',
+            headers: {
+                'X-User-ID': config.auth.user.id
+            },
             body: formData
         })
         .then(res => res.json())

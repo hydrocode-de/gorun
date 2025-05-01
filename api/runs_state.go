@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -127,7 +128,7 @@ func HandleRunStart(w http.ResponseWriter, r *http.Request, run tool.Tool) {
 		UserId: user_id,
 	}
 
-	go tool.RunTool(r.Context(), opt)
+	go tool.RunTool(context.Background(), opt)
 
 	// wait a few miliseconds to make sure the container is started
 	time.Sleep(time.Millisecond * 100)

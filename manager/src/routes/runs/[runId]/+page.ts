@@ -9,7 +9,11 @@ export const load: PageLoad = async ({ params, parent, fetch }): Promise<{run: R
 
     let files: ResultFile[];
     if (run) {
-        const res = await fetch(`${config.apiServer}/runs/${run.id}/results`).then(resp => {
+        const res = await fetch(`${config.apiServer}/runs/${run.id}/results`, {
+            headers: {
+                'X-User-ID': config.auth.user.id
+            }
+        }).then(resp => {
             if (resp.ok) {
                 return resp.json();
             } else {

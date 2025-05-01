@@ -35,7 +35,12 @@
 
     async function onStart(runId: number) {
         const runUrl = `${config.apiServer}/runs/${runId}/start`;
-        const res = await fetch(runUrl, { method: 'POST'});
+        const res = await fetch(runUrl, { 
+            method: 'POST',
+            headers: {
+                'X-User-ID': config.auth.user.id
+            }
+        });
         const data = await res.json();
         $inspect(data);
         await refresh();
@@ -43,7 +48,12 @@
 
     async function onDelete(runId: number) {
         const runUrl = `${config.apiServer}/runs/${runId}`;
-        const res = await fetch(runUrl, { method: 'DELETE'});
+        const res = await fetch(runUrl, { 
+            method: 'DELETE',
+            headers: {
+                'X-User-ID': config.auth.user.id
+            }
+        });
         const data = await res.json();
         console.log(data.message);
 

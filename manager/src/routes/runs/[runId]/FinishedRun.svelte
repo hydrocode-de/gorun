@@ -12,6 +12,23 @@
 
     let { run, files }: $$Props = $props();
     let activeTab = $state('files'); // or 'files' or 'logs'
+
+    async function downloadFile(fileName: string) {
+        const response = await fetch(`${config.apiServer}/runs/${run.id}/results/${fileName}`, {
+            headers: {
+                'X-User-ID': config.auth.user.id
+            }
+        });
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }
 </script>
 
 <div class="w-full">
@@ -79,9 +96,8 @@
                             <td class="px-6 py-4">{bytesToSize(file.size)}</td>
                             <td class="px-6 py-4">{moment(file.lastModified).fromNow()}</td>
                             <td class="px-6 py-4">
-                                <a 
-                                    href={`${config.apiServer}/runs/${run.id}/results/${file.name}`}
-                                    target="_blank"
+                                <button 
+                                    onclick={() => downloadFile(file.name)}
                                     class="text-blue-600 hover:text-blue-800 hover:cursor-pointer"
                                     title="Download" 
                                     aria-label="Download Result"
@@ -89,7 +105,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
-                                </a> 
+                                </button> 
                             </td>
                         </tr>
                         {/each}
