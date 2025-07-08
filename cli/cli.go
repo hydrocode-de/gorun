@@ -53,8 +53,8 @@ func init() {
 	cobra.OnInitialize(initApplicationConfig)
 
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enable debug output")
-	rootCmd.PersistentFlags().String("path", path.Join(os.Getenv("HOME"), ".gorun"), "the path to use as the gorun base directory")
-	rootCmd.PersistentFlags().String("db_path", path.Join(os.Getenv("HOME"), ".gorun", "gorun.db"), "the path to use as the database file")
+	rootCmd.PersistentFlags().String("path", "", "the path to use as the gorun base directory")
+	rootCmd.PersistentFlags().String("db_path", "", "the path to use as the database file")
 
 	rootCmd.PersistentFlags().BoolP("version", "v", false, "print the version number of gorun")
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
@@ -80,7 +80,7 @@ func initApplicationConfig() {
 	viper.SetDefault("host", "127.0.0.1")
 	viper.SetDefault("no_auth", false)
 	viper.SetDefault("debug", false)
-	viper.SetDefault("path", path.Join(os.Getenv("HOME"), "gorun"))
+	viper.SetDefault("path", path.Join(os.Getenv("HOME"), ".gorun"))
 	viper.SetDefault("db_path", path.Join(viper.GetString("path"), "gorun.db"))
 	viper.SetDefault("mount_path", path.Join(viper.GetString("path"), "mounts"))
 	viper.SetDefault("temp_path", path.Join(os.TempDir(), "gorun"))

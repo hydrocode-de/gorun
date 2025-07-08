@@ -24,6 +24,9 @@ WORKDIR /app
 ENV GORUN_PATH=/data/gorun
 ENV GORUN_DB=/data/gorun/gorun.db
 
+# Set environment variable, to accept all hosts within a container
+ENV GORUN_HOST=0.0.0.0
+
 # Expose the volume for persistent data
 VOLUME /data/gorun
 
