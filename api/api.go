@@ -5,18 +5,17 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hydrocode-de/gorun/api/mcp"
 	"github.com/hydrocode-de/gorun/internal/auth"
 	"github.com/hydrocode-de/gorun/internal/frontend"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
-var logger = logrus.New()
-
 func HandleApiKey(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		noAuth := viper.GetBool("no_auth")
-
+		logger := viper.Get("logger").(*logrus.Logger)
 		if noAuth {
 			logger.Printf("no_auth is enabled, getting admin credentials")
 			credentials, err := auth.GetAdminCredentials(r.Context())
@@ -46,8 +45,9 @@ func HandleApiKey(handler func(http.ResponseWriter, *http.Request)) func(http.Re
 	}
 }
 
-func CreateServer() (*http.ServeMux, error) {
+func CreateServer(enableMcp bool) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
+	logger := viper.Get("logger").(*logrus.Logger)
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -57,6 +57,13 @@ func CreateServer() (*http.ServeMux, error) {
 	// add a FileServer to serve the manager
 	//mux.Handle("/manager/", http.StripPrefix("/manager/", http.FileServer(http.Dir("manager/build"))))
 	mux.Handle("/manager/", http.StripPrefix("/manager/", http.FileServerFS(frontend.GetManager())))
+
+	if enableMcp {
+		_, err := mcp.InitMCP(mux, "/mcp")
+		if err != nil {
+			logger.Warnf("failed to initialize MCP server: %v", err)
+		}
+	}
 
 	mux.HandleFunc("GET /runs", HandleApiKey(GetAllRuns))
 	mux.HandleFunc("POST /runs", HandleApiKey(CreateRun))

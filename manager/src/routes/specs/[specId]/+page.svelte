@@ -17,7 +17,7 @@
     $inspect(parameterValues);
     $inspect(dataValues);
 
-    let currentTab: 'parameters' | 'cli' | 'citation' = $state('parameters');
+    let currentTab: 'parameters' | 'cli' | 'citation' = $state('parameters');
 
     function updateParameterValues(name: string, value: any) {
         parameterValues = {...parameterValues, [name]: value};
@@ -60,7 +60,8 @@
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-User-ID': config.auth.user.id
             },
             body: JSON.stringify(payload)
         })

@@ -10,9 +10,11 @@ import (
 	"github.com/hydrocode-de/gorun/internal/auth"
 	"github.com/hydrocode-de/gorun/internal/cache"
 	"github.com/hydrocode-de/gorun/internal/db"
+	"github.com/hydrocode-de/gorun/internal/toolImage"
 	"github.com/hydrocode-de/gorun/sql"
 	"github.com/hydrocode-de/gorun/version"
 	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -67,9 +69,19 @@ func init() {
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("path", rootCmd.PersistentFlags().Lookup("path"))
 	viper.BindPFlag("db_path", rootCmd.PersistentFlags().Lookup("db_path"))
+
+	// Configure logrus early
+	logger := logrus.New()
+	if viper.GetBool("debug") {
+		logger.SetLevel(logrus.DebugLevel)
+	} else {
+		logger.SetLevel(logrus.InfoLevel)
+	}
+	viper.Set("logger", logger)
 }
 
 func initApplicationConfig() {
+	logrus.Debug("Initializing application configuration...")
 	// Load .env file first
 	godotenv.Load()
 
@@ -78,6 +90,7 @@ func initApplicationConfig() {
 
 	viper.SetDefault("port", 8080)
 	viper.SetDefault("host", "127.0.0.1")
+	viper.SetDefault("enable_mcp", true)
 	viper.SetDefault("no_auth", false)
 	viper.SetDefault("debug", false)
 	viper.SetDefault("path", path.Join(os.Getenv("HOME"), "gorun"))
@@ -90,6 +103,13 @@ func initApplicationConfig() {
 
 	c := &cache.Cache{}
 	c.Reset()
+	go func() {
+		_, err := toolImage.ReadAllTools(context.Background(), c, false)
+		if err != nil {
+			logrus.Errorf("failed to read all tools while initializing the cache: %v", err)
+		}
+		logrus.Infof("successfully read all tools while initializing the cache")
+	}()
 	viper.Set("cache", c)
 
 	err := os.MkdirAll(viper.GetString("path"), 0755)

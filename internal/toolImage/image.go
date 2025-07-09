@@ -66,6 +66,7 @@ func ReadAllTools(ctx context.Context, cache *cache.Cache, verbose bool) ([]stri
 		}
 	}
 
+	cache.MarkReady()
 	return tools, nil
 }
 

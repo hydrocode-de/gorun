@@ -5,8 +5,17 @@ import (
 )
 
 type Cache struct {
-	images map[string]toolSpec.SpecFile
-	tools  map[string]toolSpec.ToolSpec
+	images  map[string]toolSpec.SpecFile
+	tools   map[string]toolSpec.ToolSpec
+	Ready   bool
+	ReadyCh chan struct{}
+}
+
+func (c *Cache) MarkReady() {
+	if !c.Ready {
+		c.Ready = true
+		close(c.ReadyCh)
+	}
 }
 
 func (c *Cache) GetToolSpec(key string) (*toolSpec.ToolSpec, bool) {
@@ -38,4 +47,6 @@ func (c *Cache) SetImageSpec(key string, spec toolSpec.SpecFile) {
 func (c *Cache) Reset() {
 	c.tools = make(map[string]toolSpec.ToolSpec)
 	c.images = make(map[string]toolSpec.SpecFile)
+	c.Ready = false
+	c.ReadyCh = make(chan struct{})
 }
