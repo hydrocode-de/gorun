@@ -43,6 +43,16 @@ var serveCmd = &cobra.Command{
 }
 
 func startBackgroundTasks(ctx context.Context) {
+	// Initial cache population
+	log.Println("Initializing tool cache...")
+	cacheInstance := viper.Get("cache").(*cache.Cache)
+	_, err := toolImage.ReadAllTools(ctx, cacheInstance, false)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize tool cache: %v", err)
+	} else {
+		log.Println("Tool cache initialized successfully")
+	}
+
 	cleanupTicker := time.NewTicker(time.Minute * 5)
 	go func() {
 		for range cleanupTicker.C {
@@ -56,8 +66,8 @@ func startBackgroundTasks(ctx context.Context) {
 	go func() {
 		for range toolsTicker.C {
 			log.Println("Checking for new tools")
-			cache := viper.Get("cache").(*cache.Cache)
-			_, err := toolImage.ReadAllTools(ctx, cache, false)
+			cacheInstance := viper.Get("cache").(*cache.Cache)
+			_, err := toolImage.ReadAllTools(ctx, cacheInstance, false)
 			cobra.CheckErr(err)
 		}
 	}()
