@@ -26,7 +26,11 @@ var inspectCmd = &cobra.Command{
 			fmt.Printf("\nNumber of Tools: %d\n", len(spec.Tools))
 			for _, tool := range spec.Tools {
 				fmt.Printf("\n- %s\n", tool.Title)
-				fmt.Printf("  Description: %s...\n", tool.Description[:70])
+				desc := tool.Description
+				if len(desc) > 70 {
+					desc = desc[:70] + "..."
+				}
+				fmt.Printf("  Description: %s\n", desc)
 				fmt.Printf("  Parameters: %d (", len(tool.Parameters))
 				names := make([]string, 0, len(tool.Parameters))
 				for name := range tool.Parameters {

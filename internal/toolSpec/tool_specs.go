@@ -31,15 +31,15 @@ type ToolSpec struct {
 }
 
 type ParameterSpec struct {
-	Name        string   `json:"name" yaml:"name"`
-	Description string   `json:"description,omitempty" yaml:"description,omitempty"`
-	ToolType    string   `json:"type" yaml:"type"`
-	IsArray     bool     `json:"array,omitempty" yaml:"array,omitempty" default:"false"`
-	Default     bool     `json:"default,omitempty" yaml:"default,omitempty" default:"false"`
-	Values      []string `json:"values,omitempty" yaml:"values,omitempty"`
-	Min         float64  `json:"min,omitempty" yaml:"min,omitempty"`
-	Max         float64  `json:"max,omitempty" yaml:"max,omitempty"`
-	Optional    bool     `json:"optional,omitempty" yaml:"optional,omitempty"`
+	Name        string      `json:"name" yaml:"name"`
+	Description string      `json:"description,omitempty" yaml:"description,omitempty"`
+	ToolType    string      `json:"type" yaml:"type"`
+	IsArray     bool        `json:"array,omitempty" yaml:"array,omitempty" default:"false"`
+	Default     interface{} `json:"default,omitempty" yaml:"default,omitempty"`
+	Values      []string    `json:"values,omitempty" yaml:"values,omitempty"`
+	Min         float64     `json:"min,omitempty" yaml:"min,omitempty"`
+	Max         float64     `json:"max,omitempty" yaml:"max,omitempty"`
+	Optional    bool        `json:"optional,omitempty" yaml:"optional,omitempty"`
 }
 
 type DataSpec struct {
