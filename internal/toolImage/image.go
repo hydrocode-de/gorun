@@ -27,46 +27,92 @@ func ReadAllTools(ctx context.Context, cache *cache.Cache, verbose bool) ([]stri
 	if err != nil {
 		return nil, err
 	}
-	var tools []string
+
+	// Filter images with tags
+	var imagesWithTags []string
 	for _, img := range summary {
-		if len(img.RepoTags) == 0 {
-			continue
-		}
-		imgTag := img.RepoTags[0]
-		image, ok := cache.GetImageSpec(imgTag)
-		if !ok {
-			spec, err := readToolSpec(ctx, c, imgTag)
-			if err != nil {
-				if verbose {
-					log.Printf("image %s does not contain a tool-spec", imgTag)
-				}
-				continue
-			}
-			citation, citationErr := readToolCitation(ctx, c, imgTag)
-			if citationErr != nil && verbose {
-				log.Printf("image %s does not contain a CITATION.cff", imgTag)
-			}
-
-			cache.SetImageSpec(imgTag, spec)
-			for name, tool := range spec.Tools {
-				slug := fmt.Sprintf("%s::%s", imgTag, name)
-				tool.ID = slug
-				tool.Name = name
-				if citationErr == nil {
-					tool.Citation = citation
-				}
-				cache.SetToolSpec(slug, &tool)
-				tools = append(tools, slug)
-			}
-
-		} else {
-			for name := range image.Tools {
-				tools = append(tools, name)
-			}
+		if len(img.RepoTags) > 0 {
+			imagesWithTags = append(imagesWithTags, img.RepoTags[0])
 		}
 	}
 
-	return tools, nil
+	// Use a channel to collect results from goroutines
+	type result struct {
+		tools []string
+		err   error
+	}
+	resultChan := make(chan result, len(imagesWithTags))
+
+	// Process each image in its own goroutine
+	for _, imgTag := range imagesWithTags {
+		go func(tag string) {
+			var tools []string
+
+			// Check if already cached
+			image, ok := cache.GetImageSpec(tag)
+			if !ok {
+				// Create a new Docker client for this goroutine
+				client, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+				if err != nil {
+					resultChan <- result{nil, err}
+					return
+				}
+				defer client.Close()
+
+				spec, err := readToolSpec(ctx, client, tag)
+				if err != nil {
+					if verbose {
+						log.Printf("image %s does not contain a tool-spec", tag)
+					}
+					resultChan <- result{tools, nil}
+					return
+				}
+				citation, citationErr := readToolCitation(ctx, client, tag)
+				if citationErr != nil && verbose {
+					log.Printf("image %s does not contain a CITATION.cff", tag)
+				}
+
+				cache.SetImageSpec(tag, spec)
+				for name, tool := range spec.Tools {
+					slug := fmt.Sprintf("%s::%s", tag, name)
+					tool.ID = slug
+					tool.Name = name
+					if citationErr == nil {
+						tool.Citation = citation
+					}
+					cache.SetToolSpec(slug, &tool)
+					tools = append(tools, slug)
+				}
+			} else {
+				// Image already cached, ensure individual tools are cached
+				for name, tool := range image.Tools {
+					slug := fmt.Sprintf("%s::%s", tag, name)
+					tool.ID = slug
+					tool.Name = name
+					cache.SetToolSpec(slug, &tool)
+					tools = append(tools, slug)
+				}
+			}
+
+			resultChan <- result{tools, nil}
+		}(imgTag)
+	}
+
+	// Collect results
+	var allTools []string
+	for i := 0; i < len(imagesWithTags); i++ {
+		select {
+		case res := <-resultChan:
+			if res.err != nil {
+				return nil, res.err
+			}
+			allTools = append(allTools, res.tools...)
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+
+	return allTools, nil
 }
 
 func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache *cache.Cache) (toolSpec.ToolSpec, error) {
