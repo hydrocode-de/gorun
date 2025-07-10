@@ -19,6 +19,7 @@ import (
 var port int
 var host string
 var noAuth bool
+var waitForCache bool
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
@@ -31,7 +32,14 @@ var serveCmd = &cobra.Command{
 		if serverNoAuth && serverHost != "127.0.0.1" {
 			log.Printf("WARNING: You are running the server with no authentication and a non-localhost host. This is not recommended and might expose your server to the public internet.")
 		}
-		startBackgroundTasks(cmd.Context())
+
+		// Start background tasks and optionally wait for cache initialization
+		if waitForCache {
+			log.Println("Waiting for cache initialization before starting server...")
+			startBackgroundTasksAndWait(cmd.Context())
+		} else {
+			startBackgroundTasks(cmd.Context())
+		}
 
 		mux, err := api.CreateServer()
 		cobra.CheckErr(err)
@@ -53,6 +61,31 @@ func startBackgroundTasks(ctx context.Context) {
 		log.Println("Tool cache initialized successfully")
 	}
 
+	startPeriodicTasks(ctx)
+}
+
+func startBackgroundTasksAndWait(ctx context.Context) {
+	// Initial cache population with waiting
+	log.Println("Initializing tool cache...")
+	cacheInstance := viper.Get("cache").(*cache.Cache)
+	_, err := toolImage.ReadAllTools(ctx, cacheInstance, false)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize tool cache: %v", err)
+	} else {
+		log.Println("Tool cache initialized successfully")
+	}
+
+	// Wait for cache to be marked as initialized
+	for !cacheInstance.Initialised {
+		log.Println("Waiting for cache initialization to complete...")
+		time.Sleep(time.Second)
+	}
+	log.Println("Cache initialization completed, starting server...")
+
+	startPeriodicTasks(ctx)
+}
+
+func startPeriodicTasks(ctx context.Context) {
 	cleanupTicker := time.NewTicker(time.Minute * 5)
 	go func() {
 		for range cleanupTicker.C {
@@ -87,6 +120,7 @@ func init() {
 	serveCmd.Flags().IntVar(&port, "port", 0, "The port to listen on")
 	serveCmd.Flags().StringVar(&host, "host", "", "The host to listen on")
 	serveCmd.Flags().BoolVar(&noAuth, "no-auth", false, "Disable authentication")
+	serveCmd.Flags().BoolVar(&waitForCache, "wait-for-cache", false, "Wait for cache initialization before starting the server")
 
 	viper.BindPFlag("port", serveCmd.Flags().Lookup("port"))
 	viper.BindPFlag("host", serveCmd.Flags().Lookup("host"))
