@@ -13,7 +13,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/hydrocode-de/gorun/internal/cache"
-	"github.com/hydrocode-de/gorun/internal/toolSpec"
+	"github.com/hydrocode-de/gorun/pkg/toolspec"
 )
 
 func ReadAllTools(ctx context.Context, cache *cache.Cache, verbose bool) ([]string, error) {
@@ -116,12 +116,12 @@ func ReadAllTools(ctx context.Context, cache *cache.Cache, verbose bool) ([]stri
 	return allTools, nil
 }
 
-func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache *cache.Cache) (toolSpec.ToolSpec, error) {
+func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache *cache.Cache) (toolspec.ToolSpec, error) {
 	chunks := strings.Split(toolSlug, "::")
 	if len(chunks) == 1 {
 		spec, ok := cache.GetToolSpec(toolSlug)
 		if !ok {
-			return toolSpec.ToolSpec{}, fmt.Errorf("the tool %s was not found in the cache. Try to call like <image-name>::<tool-name>", toolSlug)
+			return toolspec.ToolSpec{}, fmt.Errorf("the tool %s was not found in the cache. Try to call like <image-name>::<tool-name>", toolSlug)
 		}
 		return *spec, nil
 	}
@@ -133,7 +133,7 @@ func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache 
 		if !ok {
 			specFile, err := readToolSpec(ctx, c, imageName)
 			if err != nil {
-				return toolSpec.ToolSpec{}, err
+				return toolspec.ToolSpec{}, err
 			}
 			citation, citationErr := readToolCitation(ctx, c, imageName)
 			if citationErr != nil {
@@ -145,7 +145,7 @@ func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache 
 			}
 			tool, ok := specFile.Tools[toolName]
 			if !ok {
-				return toolSpec.ToolSpec{}, fmt.Errorf("the tool %s was not found in the image %s", toolName, imageName)
+				return toolspec.ToolSpec{}, fmt.Errorf("the tool %s was not found in the image %s", toolName, imageName)
 			}
 			tool.ID = toolSlug
 			if citationErr == nil {
@@ -155,50 +155,50 @@ func LoadToolSpec(ctx context.Context, c *client.Client, toolSlug string, cache 
 		} else {
 			tool, ok := spec.Tools[toolName]
 			if !ok {
-				return toolSpec.ToolSpec{}, fmt.Errorf("the tool %s was not found in the image %s", toolName, imageName)
+				return toolspec.ToolSpec{}, fmt.Errorf("the tool %s was not found in the image %s", toolName, imageName)
 			}
 			tool.ID = toolSlug
 			return tool, nil
 		}
 	}
-	return toolSpec.ToolSpec{}, fmt.Errorf("invalid tool slug: %s", toolSlug)
+	return toolspec.ToolSpec{}, fmt.Errorf("invalid tool slug: %s", toolSlug)
 }
 
-func ReadToolSpec(ctx context.Context, imageName string) (toolSpec.SpecFile, error) {
+func ReadToolSpec(ctx context.Context, imageName string) (toolspec.SpecFile, error) {
 	c, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return toolSpec.SpecFile{}, err
+		return toolspec.SpecFile{}, err
 	}
 	defer c.Close()
 
 	return readToolSpec(ctx, c, imageName)
 }
 
-func readToolSpec(ctx context.Context, c *client.Client, imageName string) (toolSpec.SpecFile, error) {
+func readToolSpec(ctx context.Context, c *client.Client, imageName string) (toolspec.SpecFile, error) {
 	cont, err := c.ContainerCreate(ctx, &container.Config{
 		Image:      imageName,
 		Entrypoint: []string{"cat"},
 		Cmd:        []string{"/src/tool.yml"},
 	}, &container.HostConfig{}, nil, nil, "")
 	if err != nil {
-		return toolSpec.SpecFile{}, err
+		return toolspec.SpecFile{}, err
 	}
 	defer c.ContainerRemove(ctx, cont.ID, container.RemoveOptions{})
 
 	if err = c.ContainerStart(ctx, cont.ID, container.StartOptions{}); err != nil {
-		return toolSpec.SpecFile{}, err
+		return toolspec.SpecFile{}, err
 	}
 
 	statusCh, errCh := c.ContainerWait(ctx, cont.ID, container.WaitConditionNotRunning)
 	select {
 	case err := <-errCh:
-		return toolSpec.SpecFile{}, err
+		return toolspec.SpecFile{}, err
 	case <-statusCh:
 	}
 
 	logReader, err := c.ContainerLogs(ctx, cont.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
-		return toolSpec.SpecFile{}, err
+		return toolspec.SpecFile{}, err
 	}
 	defer logReader.Close()
 
@@ -207,16 +207,16 @@ func readToolSpec(ctx context.Context, c *client.Client, imageName string) (tool
 	stdcopy.StdCopy(stdout, stderr, logReader)
 
 	if stderr.Len() != 0 {
-		return toolSpec.SpecFile{}, fmt.Errorf("the container errored while identifying the tool spec: %v", stderr.String())
+		return toolspec.SpecFile{}, fmt.Errorf("the container errored while identifying the tool spec: %v", stderr.String())
 	}
 	if stdout.Len() == 0 {
-		return toolSpec.SpecFile{}, fmt.Errorf("the container did not respond")
+		return toolspec.SpecFile{}, fmt.Errorf("the container did not respond")
 	}
 	out := stdout.Bytes()
 
-	spec, err := toolSpec.LoadToolSpec(out)
+	spec, err := toolspec.LoadToolSpec(out)
 	if err != nil {
-		return toolSpec.SpecFile{}, fmt.Errorf("the container %s did not contain a valid tool-spec at /src/tool.yml: %v", imageName, err)
+		return toolspec.SpecFile{}, fmt.Errorf("the container %s did not contain a valid tool-spec at /src/tool.yml: %v", imageName, err)
 	}
 
 	return spec, nil

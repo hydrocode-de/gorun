@@ -9,13 +9,13 @@ import (
 	"github.com/hydrocode-de/gorun/internal/cache"
 	"github.com/hydrocode-de/gorun/internal/db"
 	"github.com/hydrocode-de/gorun/internal/tool"
-	"github.com/hydrocode-de/gorun/internal/toolSpec"
+	"github.com/hydrocode-de/gorun/pkg/toolspec"
 	"github.com/spf13/viper"
 )
 
 type ListToolSpecResponse struct {
 	Count int                 `json:"count"`
-	Tools []toolSpec.ToolSpec `json:"tools"`
+	Tools []toolspec.ToolSpec `json:"tools"`
 }
 
 type CreateRunPayload struct {

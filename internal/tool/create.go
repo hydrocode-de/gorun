@@ -12,6 +12,7 @@ import (
 	"github.com/hydrocode-de/gorun/internal/files"
 	"github.com/hydrocode-de/gorun/internal/helper"
 	"github.com/hydrocode-de/gorun/internal/toolImage"
+	"github.com/hydrocode-de/gorun/pkg/toolspec"
 	"github.com/spf13/viper"
 )
 
@@ -21,12 +22,6 @@ type CreateRunOptions struct {
 	Parameters map[string]interface{}
 	Datasets   map[string]string
 }
-
-type ToolInput struct {
-	Parameters map[string]interface{} `json:"parameters"`
-	Datasets   map[string]string      `json:"data"`
-}
-type inputFile map[string]ToolInput
 
 func CreateToolRun(ctx context.Context, mountStrategy string, opts CreateRunOptions, user_id string) (db.Run, error) {
 	DB := viper.Get("db").(*db.Queries)
@@ -54,8 +49,8 @@ func CreateToolRun(ctx context.Context, mountStrategy string, opts CreateRunOpti
 	}
 
 	// create the input file
-	inputJSON, err := json.MarshalIndent(inputFile{
-		opts.Name: {
+	inputJSON, err := json.MarshalIndent(toolspec.InputFile{
+		opts.Name: toolspec.ToolInput{
 			Parameters: opts.Parameters,
 			Datasets:   datasets,
 		},
