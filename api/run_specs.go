@@ -9,7 +9,7 @@ import (
 	"github.com/hydrocode-de/gorun/internal/cache"
 	"github.com/hydrocode-de/gorun/internal/db"
 	"github.com/hydrocode-de/gorun/internal/tool"
-	"github.com/hydrocode-de/gorun/pkg/toolspec"
+	"github.com/hydrocode-de/tool-spec-go"
 	"github.com/spf13/viper"
 )
 

@@ -50,7 +50,7 @@ func createNewAdminUser(ctx context.Context) (UserLoginResponse, error) {
 }
 
 func CreateAdminCredentials(ctx context.Context) (*AdminCredentials, error) {
-	basePath := viper.GetString("base_path")
+	basePath := viper.GetString("path")
 	DB := viper.Get("db").(*db.Queries)
 
 	// Check if admin credentials file exists
@@ -70,13 +70,33 @@ func CreateAdminCredentials(ctx context.Context) (*AdminCredentials, error) {
 
 	// Check if admin user exists in the database
 	var adminResponse UserLoginResponse
-	_, err := DB.GetUserByEmail(ctx, "admin@gorun.local")
+	adminUser, err := DB.GetUserByEmail(ctx, "admin@gorun.local")
 
 	if err != nil {
 		// Admin user doesn't exist, create it
 		adminResponse, err = createNewAdminUser(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create admin user: %w", err)
+		}
+	} else {
+		// Admin user exists, create a new refresh token for it
+		JWTSecret := viper.GetString("secret")
+
+		// Create a new refresh token
+		refreshToken := helper.GetRandomString(32)
+		_, err = DB.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
+			UserID:    adminUser.ID,
+			Token:     refreshToken,
+			ExpiresAt: time.Now().Add(time.Hour * 24 * 30),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create refresh token for admin user: %w", err)
+		}
+
+		// Get login response using the new refresh token
+		adminResponse, err = NewJWTFromRefreshToken(ctx, DB, refreshToken, JWTSecret)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create admin credentials: %w", err)
 		}
 	}
 

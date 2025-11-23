@@ -13,7 +13,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/hydrocode-de/gorun/internal/cache"
-	"github.com/hydrocode-de/gorun/pkg/toolspec"
+	"github.com/hydrocode-de/tool-spec-go"
 )
 
 func ReadAllTools(ctx context.Context, cache *cache.Cache, verbose bool) ([]string, error) {
