@@ -52,7 +52,7 @@ func HandleFileUpload(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, 500, fmt.Sprintf("error writing to target file: %s", err))
 	}
 
-	ResondWithJSON(w, http.StatusCreated, map[string]interface{}{
+	RespondWithJSON(w, http.StatusCreated, map[string]interface{}{
 		"path": targetPath,
 		"size": writtenBytes,
 		"name": handler.Filename,
@@ -83,7 +83,7 @@ func FindFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ResondWithJSON(w, http.StatusOK, FindFilesResponse{
+	RespondWithJSON(w, http.StatusOK, FindFilesResponse{
 		Count: len(matches),
 		Files: matches,
 	})

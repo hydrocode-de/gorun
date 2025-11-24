@@ -13,7 +13,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/hydrocode-de/gorun/internal/cache"
-	"github.com/hydrocode-de/tool-spec-go"
+	toolspec "github.com/hydrocode-de/tool-spec-go"
 )
 
 func ReadAllTools(ctx context.Context, cache *cache.Cache, verbose bool) ([]string, error) {
@@ -76,7 +76,6 @@ func ReadAllTools(ctx context.Context, cache *cache.Cache, verbose bool) ([]stri
 				for name, tool := range spec.Tools {
 					slug := fmt.Sprintf("%s::%s", tag, name)
 					tool.ID = slug
-					tool.Name = name
 					if citationErr == nil {
 						tool.Citation = citation
 					}
@@ -88,7 +87,6 @@ func ReadAllTools(ctx context.Context, cache *cache.Cache, verbose bool) ([]stri
 				for name, tool := range image.Tools {
 					slug := fmt.Sprintf("%s::%s", tag, name)
 					tool.ID = slug
-					tool.Name = name
 					cache.SetToolSpec(slug, &tool)
 					tools = append(tools, slug)
 				}

@@ -19,7 +19,7 @@ func ListRunResults(w http.ResponseWriter, r *http.Request, tool tool.Tool) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 	}
 
-	ResondWithJSON(w, http.StatusOK, ListRunResultsResponse{
+	RespondWithJSON(w, http.StatusOK, ListRunResultsResponse{
 		Count: len(results),
 		Files: results,
 	})

@@ -9,7 +9,7 @@ require (
 	github.com/docker/docker v28.3.1+incompatible
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
-	github.com/hydrocode-de/tool-spec-go v0.0.0-20251123064647-3a7cc964f7b2
+	github.com/hydrocode-de/tool-spec-go v0.1.0
 	github.com/jedib0t/go-pretty/v6 v6.6.7
 	github.com/joho/godotenv v1.5.1
 	github.com/pressly/goose/v3 v3.24.3

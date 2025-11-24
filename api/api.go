@@ -80,7 +80,7 @@ func RespondWithError(w http.ResponseWriter, status int, err string) {
 	w.Write([]byte(err))
 }
 
-func ResondWithJSON(w http.ResponseWriter, status int, data interface{}) {
+func RespondWithJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	err := json.NewEncoder(w).Encode(data)

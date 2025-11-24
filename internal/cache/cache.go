@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/hydrocode-de/tool-spec-go"
+	toolspec "github.com/hydrocode-de/tool-spec-go"
 )
 
 type Cache struct {

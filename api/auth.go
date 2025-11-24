@@ -28,7 +28,7 @@ func HandleRefreshToken(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusUnauthorized, fmt.Sprintf("Invalid refresh token: %v", err))
 	}
 
-	ResondWithJSON(w, http.StatusOK, response)
+	RespondWithJSON(w, http.StatusOK, response)
 }
 
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
@@ -50,5 +50,5 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ResondWithJSON(w, http.StatusOK, response)
+	RespondWithJSON(w, http.StatusOK, response)
 }

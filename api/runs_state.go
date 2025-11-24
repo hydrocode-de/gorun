@@ -69,7 +69,7 @@ func GetAllRuns(w http.ResponseWriter, r *http.Request) {
 		toolRuns = append(toolRuns, toolRun)
 	}
 
-	ResondWithJSON(w, http.StatusOK, RunsResponse{
+	RespondWithJSON(w, http.StatusOK, RunsResponse{
 		Count:  len(runs),
 		Status: filter,
 		Runs:   toolRuns,
@@ -102,14 +102,14 @@ func DeleteRun(w http.ResponseWriter, r *http.Request, tool tool.Tool) {
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 	}
-	ResondWithJSON(w, http.StatusOK, map[string]string{
+	RespondWithJSON(w, http.StatusOK, map[string]string{
 		"message": "Run deleted",
 	})
 
 }
 
 func GetRunStatus(w http.ResponseWriter, r *http.Request, run tool.Tool) {
-	ResondWithJSON(w, http.StatusOK, run)
+	RespondWithJSON(w, http.StatusOK, run)
 }
 
 func HandleRunStart(w http.ResponseWriter, r *http.Request, run tool.Tool) {
@@ -139,5 +139,5 @@ func HandleRunStart(w http.ResponseWriter, r *http.Request, run tool.Tool) {
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 	}
-	ResondWithJSON(w, http.StatusProcessing, started)
+	RespondWithJSON(w, http.StatusProcessing, started)
 }

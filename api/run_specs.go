@@ -9,7 +9,8 @@ import (
 	"github.com/hydrocode-de/gorun/internal/cache"
 	"github.com/hydrocode-de/gorun/internal/db"
 	"github.com/hydrocode-de/gorun/internal/tool"
-	"github.com/hydrocode-de/tool-spec-go"
+	toolspec "github.com/hydrocode-de/tool-spec-go"
+	"github.com/hydrocode-de/tool-spec-go/validate"
 	"github.com/spf13/viper"
 )
 
@@ -73,14 +74,14 @@ func GetToolSpec(w http.ResponseWriter, r *http.Request) {
 	if !wasFound {
 		RespondWithError(w, http.StatusNotFound, "tool not found")
 	}
-	ResondWithJSON(w, http.StatusOK, spec)
+	RespondWithJSON(w, http.StatusOK, spec)
 }
 
 func ListToolSpecs(w http.ResponseWriter, r *http.Request) {
 	Cache := viper.Get("cache").(*cache.Cache)
 	specs := Cache.ListToolSpecs()
 
-	ResondWithJSON(w, http.StatusOK, ListToolSpecResponse{
+	RespondWithJSON(w, http.StatusOK, ListToolSpecResponse{
 		Count: len(specs),
 		Tools: specs,
 	})
@@ -100,6 +101,25 @@ func CreateRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	Cache := viper.Get("cache").(*cache.Cache)
+	toolSlug := fmt.Sprintf("%s::%s", payload.DockerImage, payload.ToolName)
+	toolSpec, wasFound := Cache.GetToolSpec(toolSlug)
+	if !wasFound {
+		RespondWithError(w, http.StatusNotFound, fmt.Sprintf("a tool %s was not found in the cache", toolSlug))
+		return
+	}
+	hasErrors, errs := validate.ValidateInputs(*toolSpec, toolspec.ToolInput{
+		Parameters: payload.Parameters,
+		Datasets:   payload.DataPaths,
+	})
+	if hasErrors {
+		RespondWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message": fmt.Sprintf("the provided payload is invalid for the tool %s", toolSlug),
+			"errors":  errs,
+		})
+		return
+	}
+
 	// create the mount paths with random strategy
 	opts := tool.CreateRunOptions{
 		Name:       payload.ToolName,
@@ -112,5 +132,5 @@ func CreateRun(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 	}
 
-	ResondWithJSON(w, http.StatusCreated, runData)
+	RespondWithJSON(w, http.StatusCreated, runData)
 }

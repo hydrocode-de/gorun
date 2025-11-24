@@ -12,7 +12,7 @@ import (
 	"github.com/hydrocode-de/gorun/internal/files"
 	"github.com/hydrocode-de/gorun/internal/helper"
 	"github.com/hydrocode-de/gorun/internal/toolImage"
-	"github.com/hydrocode-de/tool-spec-go"
+	toolspec "github.com/hydrocode-de/tool-spec-go"
 	"github.com/spf13/viper"
 )
 
